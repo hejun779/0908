@@ -12,7 +12,6 @@ import javax.xml.bind.annotation.XmlRootElement;
 
 import ext.caep.integration.util.Constant;
 import ext.caep.integration.util.IntegrationUtil;
-import ext.caep.integration.util.NumberingUtil;
 import wt.doc.LoadDoc;
 import wt.doc.WTDocument;
 import wt.iba.value.service.LoadValue;
@@ -151,9 +150,9 @@ public class File {
 	public WTDocument newDocument(String parentNumber, String folder) {
 		if (this.ID == null || this.ID.equals("")) {
 			docAttrs.put("number", this.name);
-			Map<String,String> map4Number =new  HashMap<String,String>();
-			map4Number.put("", value);
-			this.ID = NumberingUtil.getNumber("File",);
+			Map<String, String> map4Number = new HashMap<String, String>();
+			// map4Number.put("", value);
+			// this.ID = NumberingUtil.getNumber("File",);
 			docAttrs.put("name", this.ID);// TODO
 			String saveIn = "/Default";
 			if (folder != null && !folder.equals("")) {

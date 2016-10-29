@@ -68,8 +68,8 @@ public class DataOperationHelper implements RemoteAccess {
 			project.setDomainRef(container.getDefaultDomainReference());
 			FolderHelper.assignLocation(project, IntegrationUtil.getFolder("方案任务结构树"));
 			PersistenceHelper.manager.save(project);
-			if (bean.getFiles() != null && bean.getFiles().size() > 0) {
-				for (File file : bean.getFiles()) {
+			if (bean.getFiles() != null && bean.getFiles().getFiles().size() > 0) {
+				for (File file : bean.getFiles().getFiles()) {
 					WTDocument doc = createDocument(file, "方案任务结构树");
 					WTPartDescribeLink link = WTPartDescribeLink.newWTPartDescribeLink(project, doc);
 					PersistenceHelper.manager.save(link);

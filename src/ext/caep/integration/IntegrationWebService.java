@@ -8,7 +8,6 @@ import com.infoengine.object.factory.Att;
 import com.infoengine.object.factory.Group;
 
 import ext.caep.integration.process.Create;
-import ext.caep.integration.process.Delete;
 import ext.caep.integration.process.Synchronize;
 import ext.caep.integration.util.Constant;
 import ext.caep.integration.util.IntegrationUtil;
@@ -63,7 +62,6 @@ public class IntegrationWebService implements RemoteAccess {
 			} else if (rootState.equals(Constant.STATE_SYNCHRONIZE)) {
 				JaxbUtil.object2xml(Synchronize.process(root), outputFile);
 			} else if (rootState.equals(Constant.STATE_DELETE)) {
-				Delete.
 			}
 			com.infoengine.object.factory.Element el = new com.infoengine.object.factory.Element("");
 			el.addAtt(new Att("code", "0"));
