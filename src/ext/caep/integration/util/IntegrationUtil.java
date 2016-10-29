@@ -20,6 +20,9 @@ import com.ptc.core.meta.common.impl.TypeIdentifierUtilityHelper;
 import com.ptc.windchill.enterprise.team.server.TeamCCHelper;
 
 import wt.doc.WTDocument;
+import wt.doc.WTDocumentMaster;
+import wt.doc.WTDocumentMasterIdentity;
+import wt.fc.IdentityHelper;
 import wt.fc.Persistable;
 import wt.fc.PersistenceHelper;
 import wt.fc.QueryResult;
@@ -37,6 +40,8 @@ import wt.org.WTPrincipal;
 import wt.org.WTPrincipalReference;
 import wt.part.WTPart;
 import wt.part.WTPartHelper;
+import wt.part.WTPartMaster;
+import wt.part.WTPartMasterIdentity;
 import wt.part.WTPartUsageLink;
 import wt.pdmlink.PDMLinkProduct;
 import wt.pds.StatementSpec;
@@ -526,5 +531,39 @@ public class IntegrationUtil implements RemoteAccess {
 			}
 		}
 		return result;
+	}
+
+	public static void updateName(WTDocument doc, String newName) {
+		if (newName != null && !newName.equals("") && !doc.getName().equals(newName)) {
+			doc = (WTDocument) IntegrationUtil.checkout(doc);
+			WTDocumentMaster master = (WTDocumentMaster) doc.getMaster();
+			WTDocumentMasterIdentity docMasterIdentity;
+			try {
+				docMasterIdentity = (WTDocumentMasterIdentity) master.getIdentificationObject();
+				docMasterIdentity.setName(newName);
+				IdentityHelper.service.changeIdentity(master, docMasterIdentity);
+			} catch (WTException e) {
+				e.printStackTrace();
+			} catch (WTPropertyVetoException e) {
+				e.printStackTrace();
+			}
+		}
+	}
+
+	public static void updateName(WTPart part, String newName) {
+		if (newName != null && !newName.equals("") && !part.getName().equals(newName)) {
+			part = (WTPart) IntegrationUtil.checkout(part);
+			WTPartMaster master = (WTPartMaster) part.getMaster();
+			WTPartMasterIdentity partMasterIdentity;
+			try {
+				partMasterIdentity = (WTPartMasterIdentity) master.getIdentificationObject();
+				partMasterIdentity.setName(newName);
+				IdentityHelper.service.changeIdentity(master, partMasterIdentity);
+			} catch (WTException e) {
+				e.printStackTrace();
+			} catch (WTPropertyVetoException e) {
+				e.printStackTrace();
+			}
+		}
 	}
 }

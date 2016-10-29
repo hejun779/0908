@@ -8,6 +8,7 @@ import ext.caep.integration.bean.Software;
 import ext.caep.integration.bean.Task;
 import ext.caep.integration.util.IntegrationUtil;
 import wt.doc.WTDocument;
+import wt.part.WTPart;
 import wt.util.WTPropertyVetoException;
 
 public class Update {
@@ -29,34 +30,59 @@ public class Update {
 	}
 
 	private static void updateGlobal(Global root) {
-
+		// Do nothing
 	}
 
-	private static void updateProject(Project root) {
-
+	private static void updateProject(Project project) {
+		WTPart part = IntegrationUtil.getPartFromNumber(project.getID());
+		if (part != null) {
+			IntegrationUtil.updateName(part, project.getName());
+			project.setState("");
+			// TODO set describe type 修改type的话number会做改动
+			// part = (WTPart) IntegrationUtil.checkout(part);
+		}
 	}
 
-	private static void updateTask(Task root) {
+	private static void updateTask(Task task) {
+		WTPart part = IntegrationUtil.getPartFromNumber(task.getID());
+		if (part != null) {
+			IntegrationUtil.updateName(part, task.getName());
+			task.setState("");
+			// TODO set describe
+			// part = (WTPart) IntegrationUtil.checkout(part);
 
+		}
 	}
 
-	private static void updateSoftware(Software root) {
-
+	private static void updateSoftware(Software software) {
+		WTPart part = IntegrationUtil.getPartFromNumber(software.getID());
+		if (part != null) {
+			IntegrationUtil.updateName(part, software.getName());
+			software.setState("");
+		}
 	}
 
-	private static void updatePara(Para root) {
-
+	private static void updatePara(Para para) {
+		WTPart part = IntegrationUtil.getPartFromNumber(para.getID());
+		if (part != null) {
+			IntegrationUtil.updateName(part, para.getName());
+			para.setState("");
+		}
 	}
 
 	private static void updateFile(File file) {
 		WTDocument doc = IntegrationUtil.getDocFromNumber(file.getID());
-		doc = (WTDocument) IntegrationUtil.checkout(doc);
-		try {
-			doc.setName(file.getName());
-			doc.setDescription(file.getDescribe());
-		} catch (WTPropertyVetoException e) {
-			e.printStackTrace();
+		if (doc != null) {
+			doc = (WTDocument) IntegrationUtil.checkout(doc);
+			try {
+				IntegrationUtil.updateName(doc, file.getName());
+				doc.setDescription(file.getDescribe());
+				// TODO set author organ type 修改type的话number会做改动
+				file.setState("");
+				IntegrationUtil.checkin(doc);
+			} catch (WTPropertyVetoException e) {
+				e.printStackTrace();
+			}
 		}
-
 	}
 }
