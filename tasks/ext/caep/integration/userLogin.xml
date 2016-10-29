@@ -1,0 +1,29 @@
+<%@page language="java" session="false" access="http|soap|internal"%>
+<%@taglib uri="http://www.ptc.com/infoengine/taglib/core" prefix="ie"%>
+<!--com.infoengine.soap.rpc.def
+User log in
+-->
+<%@page import="ext.caep.integration.IntegrationWebService"%>
+
+<ie:webject name="Create-Group" type="GRP" >
+<ie:param name="GROUP_OUT" data="massreport"/>
+</ie:webject>	
+
+<ie:webject name="Get-Properties" type="MGT">
+    <ie:param name="AUTHORIZATION" data="${@SERVER[]authorization[]}"/>
+    <ie:param name="ATTRIBUTE" data="wt.federation.ie.VMName"/>
+    <ie:param name="GROUP_OUT" data="properties"/>
+</ie:webject>
+<%
+Group group = new Group ("groupIn");
+addGroup(group); 
+%>
+
+<ie:webject name="Apply-Service" type="ACT">
+    <ie:param name="INSTANCE"    data="${properties[0]wt.federation.ie.VMName[0]}" valueSeparator=";" delim=";"/>
+	<ie:param name="service"     data="ext.caep.integration.IntegrationWebService"/>
+	<ie:param name="method"      data="userLoginService"/>
+    <ie:param name="GROUP_IN"    data="groupIn"/>
+	<ie:param name="attribute"   data="*" delim=","/>
+   <ie:param name="group_out"   data="userLogin"/>
+</ie:webject>

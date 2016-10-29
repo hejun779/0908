@@ -1,0 +1,38 @@
+<%@page language="java" session="false" access="http|soap|internal"%>
+<%@taglib uri="http://www.ptc.com/infoengine/taglib/core" prefix="ie"%>
+<!--com.infoengine.soap.rpc.def
+Data operation
+@param java.lang.String sharedFile
+-->
+<%@page import="ext.caep.integration.IntegrationWebService"%>
+
+<ie:webject name="Create-Group" type="GRP" >
+<ie:param name="GROUP_OUT" data="massreport"/>
+</ie:webject>	
+
+<ie:webject name="Get-Properties" type="MGT">
+    <ie:param name="AUTHORIZATION" data="${@SERVER[]authorization[]}"/>
+    <ie:param name="ATTRIBUTE" data="wt.federation.ie.VMName"/>
+    <ie:param name="GROUP_OUT" data="properties"/>
+</ie:webject>
+<%
+String sharedFile = "";
+if(getParam("sharedFile")!= null){
+    sharedFile = (String)getParam("sharedFile");
+} 
+Element e1 = new Element();
+e1.addAtt(new Att("sharedFile", sharedFile));
+Group group = new Group ("groupIn");
+addGroup(group); 
+group.addElement(e1);
+%>
+
+<ie:webject name="Apply-Service" type="ACT">
+    <ie:param name="INSTANCE"    data="${properties[0]wt.federation.ie.VMName[0]}" valueSeparator=";" delim=";"/>
+	<ie:param name="service"     data="ext.caep.integration.IntegrationWebService"/>
+	<ie:param name="method"      data="dataOperationService"/>
+    <ie:param name="GROUP_IN"    data="groupIn"/>
+    <ie:param name="arg"         data="java.lang.String=sharedFile"/>
+	<ie:param name="attribute"   data="*" delim=","/>
+   <ie:param name="group_out"   data="dataOperation"/>
+</ie:webject>
