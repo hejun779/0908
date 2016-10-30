@@ -20,7 +20,11 @@ import wt.pom.Transaction;
  */
 public class Create {
 
-	public static void process(Object root) {
+	public Create() {
+
+	}
+
+	public void process(Object root) {
 		if (root instanceof Global) {
 			createGlobal((Global) root);
 		} else if (root instanceof Project) {
@@ -37,7 +41,7 @@ public class Create {
 		}
 	}
 
-	private static void createGlobal(Global root) {
+	private void createGlobal(Global root) {
 		Transaction ts = new Transaction();
 		try {
 			ts.start();
@@ -58,7 +62,7 @@ public class Create {
 		}
 	}
 
-	private static void createProject(Project project) {
+	private void createProject(Project project) {
 		project.newProject();
 		Files files = project.getFiles();
 		if (files != null && files.getFiles() != null && !files.getFiles().isEmpty()) {
@@ -75,7 +79,7 @@ public class Create {
 		project.endProject();
 	}
 
-	private static void createTask(String parentNumber, Task task) {
+	private void createTask(String parentNumber, Task task) {
 		task.newTask(parentNumber);
 		// 创建计算任务附属文件
 		Files files = task.getFiles();
@@ -94,7 +98,7 @@ public class Create {
 		task.endTask();
 	}
 
-	private static void createSoftware(String parentNumber, Software software) {
+	private void createSoftware(String parentNumber, Software software) {
 		software.newSoftware(parentNumber);
 		// 创建参数
 		List<Para> paras = software.getParas();
@@ -106,7 +110,7 @@ public class Create {
 		software.endSoftware();
 	}
 
-	private static void createPara(String parentNumber, String folder, Para para) {
+	private void createPara(String parentNumber, String folder, Para para) {
 		para.newPara(parentNumber);
 		// 创建输入输出文件
 		List<File> paraFiles = para.getFiles();
@@ -118,7 +122,7 @@ public class Create {
 		para.endPara();
 	}
 
-	private static void createFile(String parentNumber, String folder, File file) {
+	private void createFile(String parentNumber, String folder, File file) {
 		file.newDocument(parentNumber, folder);
 	}
 }
