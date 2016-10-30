@@ -100,7 +100,7 @@ public class Task {
 	public void newTask(Project project) throws Exception {
 		if (this.ID == null || this.ID.equals("")) {
 			this.create = true;
-			String number = NumberingUtil.getNumber(project, null);// TODO
+			String number = NumberingUtil.getNumber(project, null);
 			this.ID = number;
 			partAttrs.put("partNumber", number);
 			partAttrs.put("partName", this.name);
