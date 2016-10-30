@@ -75,10 +75,10 @@ public class Para {
 		this.files = files;
 	}
 
-	public void newPara(String parentNumber) {
+	public void newPara(String parentNumber) throws Exception {
 		if (this.ID == null || this.ID.equals("")) {
 			this.create = true;
-			String number = NumberingUtil.getNumber(null);// TODO
+			String number = NumberingUtil.getNumber(null, this);// TODO
 			this.ID = number;
 			partAttrs.put("partNumber", number);
 			partAttrs.put("partName", this.name);

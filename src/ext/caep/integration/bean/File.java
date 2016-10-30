@@ -1,8 +1,6 @@
 package ext.caep.integration.bean;
 
-import java.util.HashMap;
 import java.util.Hashtable;
-import java.util.Map;
 import java.util.Vector;
 
 import javax.xml.bind.annotation.XmlAccessType;
@@ -12,6 +10,7 @@ import javax.xml.bind.annotation.XmlRootElement;
 
 import ext.caep.integration.util.Constant;
 import ext.caep.integration.util.IntegrationUtil;
+import ext.caep.integration.util.NumberingUtil;
 import wt.doc.LoadDoc;
 import wt.doc.WTDocument;
 import wt.iba.value.service.LoadValue;
@@ -147,13 +146,12 @@ public class File {
 		return doc;
 	}
 
-	public WTDocument newDocument(String parentNumber, String folder) {
+	public WTDocument newDocument(String parentNumber, Object parent, String folder) throws Exception {
 		if (this.ID == null || this.ID.equals("")) {
-			docAttrs.put("number", this.name);
-			Map<String, String> map4Number = new HashMap<String, String>();
-			// map4Number.put("", value);
-			// this.ID = NumberingUtil.getNumber("File",);
-			docAttrs.put("name", this.ID);// TODO
+			String number = NumberingUtil.getNumber(parent, this);
+			this.ID = number;
+			docAttrs.put("name", this.name);
+			docAttrs.put("number", this.ID);
 			String saveIn = "/Default";
 			if (folder != null && !folder.equals("")) {
 				saveIn = saveIn + "/" + folder;
