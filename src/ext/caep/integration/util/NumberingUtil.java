@@ -48,29 +48,35 @@ public class NumberingUtil
 	 * 		返回根据编号规则生成的编号 
 	 * @throws Exception
 	 */
-	public static String getNumber(String typeId, Map<String, String> props) throws Exception
+	public static String getNumber(String typeId, Map<String, String> props)
 	{
 		String number = null;
-		
-		if(PROP_PROJECT.equalsIgnoreCase(typeId))
+		try
 		{
-			number = generateProjectNumber(props);
+			if(PROP_PROJECT.equalsIgnoreCase(typeId))
+			{
+				number = generateProjectNumber(props);
+			}
+			else if(PROP_TASK.equalsIgnoreCase(typeId))
+			{
+				number = generateTaskNumber(props);
+			}
+			else if(PROP_SOFTWARE.equalsIgnoreCase(typeId))
+			{
+				number = generateSoftwareNumber();
+			}
+			else if(PROP_PARAM.equalsIgnoreCase(typeId))
+			{
+				number = generateParamNumber();
+			}
+			else if(PROP_FILE.equalsIgnoreCase(typeId))
+			{
+				number = generateFileNumber(props);
+			}
 		}
-		else if(PROP_TASK.equalsIgnoreCase(typeId))
+		catch(Exception ex)
 		{
-			number = generateTaskNumber(props);
-		}
-		else if(PROP_SOFTWARE.equalsIgnoreCase(typeId))
-		{
-			number = generateSoftwareNumber();
-		}
-		else if(PROP_PARAM.equalsIgnoreCase(typeId))
-		{
-			number = generateParamNumber();
-		}
-		else if(PROP_FILE.equalsIgnoreCase(typeId))
-		{
-			number = generateFileNumber(props);
+			ex.printStackTrace();
 		}
 		return number;
 	}

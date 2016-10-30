@@ -110,7 +110,7 @@ public class Project {
 	public WTPart newProject() {
 		if (this.ID == null || this.ID.equals("")) {
 			create = true;
-			String number = NumberingUtil.getNumber(null);// TODO
+			String number = NumberingUtil.getNumber(null, null);// TODO
 			this.ID = number;
 			partAttrs.put("partNumber", number);
 			partAttrs.put("partName", this.name);

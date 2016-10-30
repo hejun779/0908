@@ -78,7 +78,7 @@ public class Para {
 	public void newPara(String parentNumber) {
 		if (this.ID == null || this.ID.equals("")) {
 			this.create = true;
-			String number = NumberingUtil.getNumber(null);// TODO
+			String number = NumberingUtil.getNumber(null, null);// TODO
 			this.ID = number;
 			partAttrs.put("partNumber", number);
 			partAttrs.put("partName", this.name);
