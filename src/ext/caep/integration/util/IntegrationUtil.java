@@ -495,6 +495,7 @@ public class IntegrationUtil implements RemoteAccess {
 	public static Workable checkout(Workable workable) {
 		Workable result = null;
 		try {
+
 			if (WorkInProgressHelper.isWorkingCopy(workable)) {
 				result = workable;
 			} else {
