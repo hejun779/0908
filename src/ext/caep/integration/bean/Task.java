@@ -18,21 +18,21 @@ import wt.part.LoadPart;
 import wt.part.WTPart;
 
 @XmlRootElement(name = "Task")
-@XmlAccessorType(XmlAccessType.FIELD)
+@XmlAccessorType(XmlAccessType.PROPERTY)
 public class Task {
-	@XmlAttribute(name = "name")
+
 	private String name;
-	@XmlAttribute(name = "ID")
+
 	private String ID;
-	@XmlAttribute(name = "state")
+
 	private String state = "";
 
-	@XmlAttribute(name = "describe")
 	private String describe;
-	@XmlElement(name = "Software")
+
 	private List<Software> softwares;
-	@XmlElement(name = "Files")
+
 	private Files files;
+
 	Vector return_objects = new Vector();
 	Hashtable cmd_line = new Hashtable();
 	Hashtable partAttrs = new Hashtable();
@@ -49,6 +49,7 @@ public class Task {
 		// TODO
 	}
 
+	@XmlAttribute(name = "name")
 	public String getName() {
 		return name;
 	}
@@ -57,6 +58,7 @@ public class Task {
 		this.name = name;
 	}
 
+	@XmlAttribute(name = "ID")
 	public String getID() {
 		return ID;
 	}
@@ -65,6 +67,7 @@ public class Task {
 		ID = iD;
 	}
 
+	@XmlAttribute(name = "describe")
 	public String getDescribe() {
 		return describe;
 	}
@@ -73,6 +76,7 @@ public class Task {
 		this.describe = describe;
 	}
 
+	@XmlElement(name = "Software")
 	public List<Software> getSoftwares() {
 		return softwares;
 	}
@@ -81,6 +85,7 @@ public class Task {
 		this.softwares = softwares;
 	}
 
+	@XmlElement(name = "Files")
 	public Files getFiles() {
 		return files;
 	}
@@ -89,6 +94,7 @@ public class Task {
 		this.files = files;
 	}
 
+	@XmlAttribute(name = "state")
 	public String getState() {
 		return state;
 	}

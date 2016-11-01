@@ -1,5 +1,12 @@
 package ext.caep.integration.util;
 
+import java.io.File;
+import java.util.ArrayList;
+import java.util.List;
+
+import ext.caep.integration.bean.Files;
+import ext.caep.integration.bean.Global;
+import ext.caep.integration.bean.Project;
 import wt.doc.WTDocument;
 import wt.fc.PersistenceHelper;
 import wt.fc.QueryResult;
@@ -24,17 +31,19 @@ public class DeleteTest implements RemoteAccess {
 	private static Class TaskResultClass;
 
 	public static void main(String[] args) {
-		ReferenceFactory factory = new ReferenceFactory();
-		try {
-			WTPart p = (WTPart) factory.getReference("OR:wt.part.WTPart:63681").getObject();
-			PersistenceHelper.manager.delete(p);
-		} catch (WTRuntimeException e) {
-			e.printStackTrace();
-		} catch (WTException e) {
-			e.printStackTrace();
-		}
+		// ReferenceFactory factory = new ReferenceFactory();
+		// try {
+		// WTPart p = (WTPart)
+		// factory.getReference("OR:wt.part.WTPart:63681").getObject();
+		// PersistenceHelper.manager.delete(p);
+		// } catch (WTRuntimeException e) {
+		// e.printStacjkTrace();
+		// } catch (WTException e) {
+		// e.printStackTrace();
+		// }
 
 		// deleteDocLink();
+		testNull();
 	}
 
 	static {
@@ -43,6 +52,31 @@ public class DeleteTest implements RemoteAccess {
 		} catch (ClassNotFoundException e) {
 			e.printStackTrace();
 		}
+	}
+
+	public static void testNull() {
+		Global g = new Global();
+		g.setName("test");
+
+		List<Project> projects = new ArrayList<Project>();
+		Project p = new Project();
+		p.setName("p01");
+		projects.add(p);
+		Files files = new Files();
+
+		ext.caep.integration.bean.File f = new ext.caep.integration.bean.File();
+		f.setName("filename.txt");
+
+		List<ext.caep.integration.bean.File> fileList = new ArrayList<ext.caep.integration.bean.File>();
+		fileList.add(f);
+
+		files.setFiles(fileList);
+
+		p.setFiles(files);
+
+		g.setProjects(null);
+		File file = new File("d:\\test.xml");
+		JaxbUtil.object2xml(g, file);
 	}
 
 	public static void deleteDocLink() {

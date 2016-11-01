@@ -20,28 +20,29 @@ import wt.util.WTException;
 import wt.util.WTPropertyVetoException;
 
 @XmlRootElement(name = "File")
-@XmlAccessorType(XmlAccessType.FIELD)
+@XmlAccessorType(XmlAccessType.PROPERTY)
 public class File {
-	@XmlAttribute(name = "name")
+
 	private String name;
-	@XmlAttribute(name = "ID")
+
 	private String ID;
-	@XmlAttribute(name = "path")
+
 	private String path;
-	@XmlAttribute(name = "type")
+
 	private String type;// 类型标识
-	@XmlAttribute(name = "author")
+
 	private String author;
-	@XmlAttribute(name = "describe")
+
 	private String describe;
-	@XmlAttribute(name = "state")
+
 	private String state;
-	@XmlAttribute(name = "organ")
+
 	private String organ;
 	Hashtable docAttrs = new Hashtable();
 	Vector return_objects = new Vector();
 	Hashtable cmd_line = new Hashtable();
 
+	@XmlAttribute(name = "organ")
 	public String getOrgan() {
 		return organ;
 	}
@@ -65,6 +66,7 @@ public class File {
 		// this.organ TODO
 	}
 
+	@XmlAttribute(name = "name")
 	public String getName() {
 		return name;
 	}
@@ -73,6 +75,7 @@ public class File {
 		this.name = name;
 	}
 
+	@XmlAttribute(name = "state")
 	public String getState() {
 		return state;
 	}
@@ -81,6 +84,7 @@ public class File {
 		this.state = state;
 	}
 
+	@XmlAttribute(name = "path")
 	public String getPath() {
 		return path;
 	}
@@ -89,6 +93,7 @@ public class File {
 		this.path = path;
 	}
 
+	@XmlAttribute(name = "author")
 	public String getAuthor() {
 		return author;
 	}
@@ -97,6 +102,7 @@ public class File {
 		this.author = author;
 	}
 
+	@XmlAttribute(name = "describe")
 	public String getDescribe() {
 		return describe;
 	}
@@ -105,6 +111,7 @@ public class File {
 		this.describe = describe;
 	}
 
+	@XmlAttribute(name = "ID")
 	public String getID() {
 		return ID;
 	}
@@ -113,6 +120,7 @@ public class File {
 		ID = iD;
 	}
 
+	@XmlAttribute(name = "type")
 	public String getType() {
 		return type;
 	}

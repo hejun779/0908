@@ -17,16 +17,17 @@ import wt.part.LoadPart;
 import wt.part.WTPart;
 
 @XmlRootElement(name = "Para")
-@XmlAccessorType(XmlAccessType.FIELD)
+@XmlAccessorType(XmlAccessType.PROPERTY)
 public class Para {
-	@XmlAttribute(name = "name")
+
 	private String name;
-	@XmlAttribute(name = "ID")
+
 	private String ID;
-	@XmlAttribute(name = "state")
+
 	private String state = "";
-	@XmlElement(name = "File")
+
 	private List<File> files;
+
 	Vector return_objects = new Vector();
 	Hashtable cmd_line = new Hashtable();
 	Hashtable partAttrs = new Hashtable();
@@ -43,6 +44,7 @@ public class Para {
 
 	}
 
+	@XmlAttribute(name = "name")
 	public String getName() {
 		return name;
 	}
@@ -51,6 +53,7 @@ public class Para {
 		this.name = name;
 	}
 
+	@XmlAttribute(name = "ID")
 	public String getID() {
 		return ID;
 	}
@@ -59,6 +62,7 @@ public class Para {
 		ID = iD;
 	}
 
+	@XmlAttribute(name = "state")
 	public String getState() {
 		return state;
 	}
@@ -67,6 +71,7 @@ public class Para {
 		this.state = state;
 	}
 
+	@XmlElement(name = "File")
 	public List<File> getFiles() {
 		return files;
 	}

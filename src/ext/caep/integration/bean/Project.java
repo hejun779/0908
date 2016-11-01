@@ -18,22 +18,23 @@ import wt.part.LoadPart;
 import wt.part.WTPart;
 
 @XmlRootElement(name = "Project")
-@XmlAccessorType(XmlAccessType.FIELD)
+@XmlAccessorType(XmlAccessType.PROPERTY)
 public class Project {
-	@XmlAttribute
+
 	private String name;
-	@XmlAttribute(name = "ID")
+
 	private String ID;// number
-	@XmlAttribute(name = "state")
+
 	private String state = "";
-	@XmlAttribute(name = "type")
+
 	private String type;// 构型
-	@XmlAttribute(name = "describe")
+
 	private String describe;
-	@XmlElement(name = "Task")
+
 	private List<Task> tasks;
-	@XmlElement(name = "Files")
+
 	private Files files;
+
 	Vector return_objects = new Vector();
 	Hashtable cmd_line = new Hashtable();
 	Hashtable partAttrs = new Hashtable();
@@ -51,6 +52,7 @@ public class Project {
 		this.describe = "";
 	}
 
+	@XmlAttribute(name = "ID")
 	public String getID() {
 		return ID;
 	}
@@ -59,6 +61,7 @@ public class Project {
 		ID = iD;
 	}
 
+	@XmlAttribute
 	public String getName() {
 		return name;
 	}
@@ -67,6 +70,7 @@ public class Project {
 		this.name = name;
 	}
 
+	@XmlAttribute(name = "state")
 	public String getState() {
 		return state;
 	}
@@ -75,6 +79,7 @@ public class Project {
 		this.state = state;
 	}
 
+	@XmlElement(name = "Task")
 	public List<Task> getTasks() {
 		return tasks;
 	}
@@ -83,6 +88,7 @@ public class Project {
 		this.tasks = tasks;
 	}
 
+	@XmlAttribute(name = "describe")
 	public String getDescribe() {
 		return describe;
 	}
@@ -91,6 +97,7 @@ public class Project {
 		this.describe = describe;
 	}
 
+	@XmlAttribute(name = "type")
 	public String getType() {
 		return type;
 	}
@@ -99,6 +106,7 @@ public class Project {
 		this.type = type;
 	}
 
+	@XmlElement(name = "Files")
 	public Files getFiles() {
 		return files;
 	}
@@ -142,6 +150,7 @@ public class Project {
 			LoadPart.endCreateWTPart(partAttrs, cmd_line, return_objects);
 			if (return_objects.size() > 0 && return_objects.get(0) instanceof WTPart) {
 				return (WTPart) return_objects.get(0);
+
 			}
 		}
 		return null;

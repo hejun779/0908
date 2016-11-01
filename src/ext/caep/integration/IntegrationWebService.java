@@ -99,7 +99,7 @@ public class IntegrationWebService implements RemoteAccess {
 		}
 		// 删除:如果state表示删除,将删除此节点,忽略子节点的状态,并根据角色依次删除所有子节点
 		else if (state.equals(Constant.STATE_DELETE)) {
-			Delete.process(root);
+			new Delete().process(root);
 		}
 		// 编辑:如果state表示更新,将更新此节点,且只更新此节点,子节点将根据自身的state状态进行处理
 		else if (state.equals(Constant.STATE_UPDATE)) {

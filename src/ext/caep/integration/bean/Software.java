@@ -17,16 +17,15 @@ import wt.part.LoadPart;
 import wt.part.WTPart;
 
 @XmlRootElement(name = "Software")
-@XmlAccessorType(XmlAccessType.FIELD)
+@XmlAccessorType(XmlAccessType.PROPERTY)
 public class Software {
-	@XmlAttribute(name = "name")
+
 	private String name;
-	@XmlAttribute(name = "ID")
+
 	private String ID;
-	@XmlAttribute(name = "state")
+
 	private String state;
 
-	@XmlElement(name = "Para")
 	private List<Para> paras;
 
 	Vector return_objects = new Vector();
@@ -44,6 +43,7 @@ public class Software {
 		this.state = "";
 	}
 
+	@XmlAttribute(name = "name")
 	public String getName() {
 		return name;
 	}
@@ -52,6 +52,7 @@ public class Software {
 		this.name = name;
 	}
 
+	@XmlAttribute(name = "ID")
 	public String getID() {
 		return ID;
 	}
@@ -60,6 +61,7 @@ public class Software {
 		ID = iD;
 	}
 
+	@XmlAttribute(name = "state")
 	public String getState() {
 		return state;
 	}
@@ -68,6 +70,7 @@ public class Software {
 		this.state = state;
 	}
 
+	@XmlElement(name = "Para")
 	public List<Para> getParas() {
 		return paras;
 	}
@@ -79,7 +82,7 @@ public class Software {
 	public void newSoftware(String parentNumber) throws Exception {
 		if (this.ID == null || this.ID.equals("")) {
 			this.create = true;
-			String number = NumberingUtil.getNumber(null,this);// TODO
+			String number = NumberingUtil.getNumber(null, this);// TODO
 			this.ID = number;
 			partAttrs.put("partNumber", number);
 			partAttrs.put("partName", this.name);
