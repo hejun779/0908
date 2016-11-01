@@ -1,16 +1,24 @@
 package ext.caep.integration.util;
 
+import java.io.FileInputStream;
+import java.io.InputStream;
 import java.lang.reflect.InvocationTargetException;
 import java.rmi.RemoteException;
 import java.sql.Timestamp;
 import java.util.Hashtable;
 import java.util.Vector;
 
+import wt.content.ApplicationData;
+import wt.content.ContentHelper;
+import wt.content.ContentRoleType;
+import wt.content.ContentServerHelper;
 import wt.doc.DocumentType;
 import wt.doc.LoadDoc;
 import wt.doc.WTDocument;
 import wt.fc.PersistenceHelper;
 import wt.fc.PersistenceServerHelper;
+import wt.fc.QueryResult;
+import wt.fc.ReferenceFactory;
 import wt.fc.collections.WTArrayList;
 import wt.fc.collections.WTCollection;
 import wt.iba.value.service.LoadValue;
@@ -24,12 +32,148 @@ import wt.part.WTPartUsageLink;
 import wt.pom.PersistenceException;
 import wt.pom.Transaction;
 import wt.util.WTException;
+import wt.util.WTPropertyVetoException;
+import wt.util.WTRuntimeException;
 
-public class SaveTest70 implements RemoteAccess {
+public class SaveTest110 implements RemoteAccess {
 
 	public static void main(String[] args) {
 		// loadBOM();
-		createDoc();
+		// createDoc();
+		RemoteMethodServer.getDefault().setUserName("demo");
+		RemoteMethodServer.getDefault().setPassword("demo");
+		docUpdate();
+	}
+
+	public static void docUpdate() {
+		if (RemoteMethodServer.ServerFlag) {
+			ReferenceFactory factory = new ReferenceFactory();
+			Transaction trx = null;
+			try {
+				trx = new Transaction();
+				trx.start();
+				WTDocument doc = (WTDocument) factory.getReference("VR:wt.doc.WTDocument:65738").getObject();
+				doc = (WTDocument) IntegrationUtil.checkout(doc);
+				doc.setDescription("newd");
+				doc = (WTDocument) IBAUtil.updateIBAValue(doc, "caep_lxbs", "caep_lxbs");
+				doc = (WTDocument) IBAUtil.updateIBAValue(doc, "organ", "organ");
+				doc = (WTDocument) IBAUtil.updateIBAValue(doc, "author", "author");
+				QueryResult primary = ContentHelper.service.getContentsByRole(doc, ContentRoleType.PRIMARY);
+				String fileName = "e:\\result.txt";
+				while (primary.hasMoreElements()) {
+					ApplicationData appData = (ApplicationData) primary.nextElement();
+					appData.setFileName("1.xml");
+					appData.setUploadedFromPath(fileName);
+					InputStream is = new FileInputStream(fileName);
+					ContentServerHelper.service.updateContent(doc, appData, is);
+				}
+				IntegrationUtil.checkin(doc);
+				trx.commit();
+				trx = null;
+			} catch (WTRuntimeException e) {
+				e.printStackTrace();
+			} catch (WTException e) {
+				e.printStackTrace();
+			} catch (WTPropertyVetoException e) {
+				e.printStackTrace();
+			} catch (Exception e) {
+				e.printStackTrace();
+			} finally {
+				if (trx != null) {
+					trx.rollback();
+				}
+			}
+		} else {
+			try {
+				RemoteMethodServer.getDefault().invoke("docUpdate", SaveTest110.class.getName(), null, null, null);
+			} catch (RemoteException e) {
+				e.printStackTrace();
+			} catch (InvocationTargetException e) {
+				e.printStackTrace();
+			}
+		}
+	}
+
+	public static void updateDoc() {
+		if (RemoteMethodServer.ServerFlag) {
+			Vector return_objects = new Vector();
+			Hashtable cmd_line = new Hashtable();
+			Hashtable docAttrs = new Hashtable();
+			docAttrs.put("number", "0000000082");
+			// docAttrs.put("name", "doctest");
+			docAttrs.put("saveIn", "/Default");
+			// docAttrs.put("type", "Document");
+			docAttrs.put("typedef", "lfrc.caep.File");
+			docAttrs.put("parentContainerPath", "/wt.inf.container.OrgContainer=ptc/wt.pdmlink.PDMLinkProduct=demo");
+			docAttrs.put("department", "DESIGN");
+			docAttrs.put("description", "describe");
+
+			// docAttrs.put("primarycontenttype", "ApplicationData");
+			// docAttrs.put("path", "\\\\localhost\\windchill\\result.txt");
+
+			LoadDoc.beginCreateWTDocument(docAttrs, cmd_line, return_objects);
+
+			docAttrs.put("definition", "caep_lxbs");
+			docAttrs.put("value1", "PPF");
+			LoadValue.createIBAValue(docAttrs, cmd_line, return_objects);
+
+			Hashtable organ = new Hashtable();
+			docAttrs.put("definition", "organ");
+			docAttrs.put("value1", "design");
+			LoadValue.createIBAValue(docAttrs, cmd_line, return_objects);
+
+			docAttrs.put("definition", "author");
+			docAttrs.put("value1", "tom");
+			LoadValue.createIBAValue(docAttrs, cmd_line, return_objects);
+
+			LoadDoc.endCreateWTDocument(docAttrs, cmd_line, return_objects);
+		} else {
+			try {
+				RemoteMethodServer.getDefault().invoke("updateDoc", SaveTest110.class.getName(), null, null, null);
+			} catch (RemoteException e) {
+				e.printStackTrace();
+			} catch (InvocationTargetException e) {
+				e.printStackTrace();
+			}
+		}
+	}
+
+	public static void update() {
+		if (RemoteMethodServer.ServerFlag) {
+			Vector return_objects = new Vector();
+			Hashtable cmd_line = new Hashtable();
+			Hashtable partAttrs = new Hashtable();
+			partAttrs.put("partNumber", "0000000081");
+			// partAttrs.put("partName", "project111");
+			partAttrs.put("parentContainerPath", "/wt.inf.container.OrgContainer=ptc/wt.pdmlink.PDMLinkProduct=demo");
+			partAttrs.put("type", "component");
+			// partAttrs.put("typedef",
+			// "WCTYPE|wt.part.WTPart|lfrc.caep.Project");
+			partAttrs.put("source", "make");
+			partAttrs.put("folder", "/Default");
+			// partAttrs.put("view", "Design");
+
+			LoadPart.beginCreateOrUpdateWTPart(partAttrs, cmd_line, return_objects);
+
+			partAttrs.put("definition", Constant.ATTR_CAEP_GX);
+			partAttrs.put("value1", "test111");
+			LoadValue.createIBAValue(partAttrs, cmd_line, return_objects);
+
+			partAttrs.put("definition", Constant.ATTR_DESCRIBE);
+			partAttrs.put("value1", "描述111");
+			LoadValue.createIBAValue(partAttrs, cmd_line, return_objects);
+
+			// partAttrs.put("parentContainerPath", null);
+			LoadPart.endCreateOrUpdateWTPart(partAttrs, cmd_line, return_objects);
+		} else {
+			try {
+				RemoteMethodServer.getDefault().invoke("update", SaveTest110.class.getName(), null, null, null);
+			} catch (RemoteException e) {
+				e.printStackTrace();
+			} catch (InvocationTargetException e) {
+				e.printStackTrace();
+			}
+		}
 	}
 
 	public static void createDoc() {
@@ -114,7 +258,7 @@ public class SaveTest70 implements RemoteAccess {
 			// "default", time, true, true, true, result);
 		} else {
 			try {
-				RemoteMethodServer.getDefault().invoke("createDoc", SaveTest70.class.getName(), null, null, null);
+				RemoteMethodServer.getDefault().invoke("createDoc", SaveTest110.class.getName(), null, null, null);
 			} catch (RemoteException e) {
 				e.printStackTrace();
 			} catch (InvocationTargetException e) {
@@ -162,7 +306,7 @@ public class SaveTest70 implements RemoteAccess {
 			}
 		} else {
 			try {
-				RemoteMethodServer.getDefault().invoke("save", SaveTest70.class.getName(), null, null, null);
+				RemoteMethodServer.getDefault().invoke("save", SaveTest110.class.getName(), null, null, null);
 			} catch (RemoteException e) {
 				e.printStackTrace();
 			} catch (InvocationTargetException e) {
@@ -217,7 +361,7 @@ public class SaveTest70 implements RemoteAccess {
 			LoadPart.endCreateWTPart(childAttrs, cmd_line, return_objects);
 		} else {
 			try {
-				RemoteMethodServer.getDefault().invoke("loadBOM", SaveTest70.class.getName(), null, null, null);
+				RemoteMethodServer.getDefault().invoke("loadBOM", SaveTest110.class.getName(), null, null, null);
 			} catch (RemoteException e) {
 				e.printStackTrace();
 			} catch (InvocationTargetException e) {

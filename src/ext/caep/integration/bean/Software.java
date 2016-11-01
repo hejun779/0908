@@ -76,10 +76,10 @@ public class Software {
 		this.paras = paras;
 	}
 
-	public void newSoftware(String parentNumber) {
+	public void newSoftware(String parentNumber) throws Exception {
 		if (this.ID == null || this.ID.equals("")) {
 			this.create = true;
-			String number = NumberingUtil.getNumber(null, null);// TODO
+			String number = NumberingUtil.getNumber(null,this);// TODO
 			this.ID = number;
 			partAttrs.put("partNumber", number);
 			partAttrs.put("partName", this.name);

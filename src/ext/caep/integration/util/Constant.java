@@ -33,11 +33,11 @@ public class Constant {
 	public static final Object STATE_DOWNLOAD = "3";// 需要下载文件内容,同时下载所有子对象的文档
 
 	// 软类型
-	public static final String SOFTTYPE_PROJECT = "wt.part.WTPart|lfrc.caep.Project";
-	public static final String SOFTTYPE_TASK = "wt.part.WTPart|lfrc.caep.Task";
-	public static final String SOFTTYPE_SOFTWARE = "wt.part.WTPart|lfrc.caep.Software";
-	public static final String SOFTTYPE_PARA = "wt.part.WTPart|lfrc.caep.Para";
-	public static final String SOFTTYPE_FILE = "wt.part.WTPart|lfrc.caep.File";
+	public static final String SOFTTYPE_PROJECT = "lfrc.caep.Project";
+	public static final String SOFTTYPE_TASK = "lfrc.caep.Task";
+	public static final String SOFTTYPE_SOFTWARE = "lfrc.caep.Software";
+	public static final String SOFTTYPE_PARA = "lfrc.caep.Para";
+	public static final String SOFTTYPE_FILE = "lfrc.caep.File";
 
 	// 软属性
 	public static final String ATTR_CAEP_LXBS = "caep_lxbs";// 文档软属性类型标识

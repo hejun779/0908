@@ -97,10 +97,10 @@ public class Task {
 		this.state = state;
 	}
 
-	public void newTask(String parentNumber) {
+	public void newTask(Project project) throws Exception {
 		if (this.ID == null || this.ID.equals("")) {
 			this.create = true;
-			String number = NumberingUtil.getNumber(null, null);// TODO
+			String number = NumberingUtil.getNumber(project, null);
 			this.ID = number;
 			partAttrs.put("partNumber", number);
 			partAttrs.put("partName", this.name);
@@ -117,9 +117,9 @@ public class Task {
 
 			LoadPart.beginCreateWTPart(partAttrs, cmd_line, return_objects);
 
-			if (parentNumber != null && !parentNumber.equals("")) {
+			if (project != null && project.getID() != null && !project.getID().equals("")) {
 				Hashtable assmAttrs = new Hashtable();
-				assmAttrs.put("assemblyPartNumber", parentNumber);
+				assmAttrs.put("assemblyPartNumber", project.getID());
 				assmAttrs.put("constituentPartNumber", this.ID);
 				assmAttrs.put("constituentPartQty", "1");
 				assmAttrs.put("constituentPartUnit", "ea");

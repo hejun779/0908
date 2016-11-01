@@ -107,10 +107,10 @@ public class Project {
 		this.files = files;
 	}
 
-	public WTPart newProject() {
+	public WTPart newProject() throws Exception {
 		if (this.ID == null || this.ID.equals("")) {
 			create = true;
-			String number = NumberingUtil.getNumber(null, null);// TODO
+			String number = NumberingUtil.getNumber(null, this);// TODO
 			this.ID = number;
 			partAttrs.put("partNumber", number);
 			partAttrs.put("partName", this.name);

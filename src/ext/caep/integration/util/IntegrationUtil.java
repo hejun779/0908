@@ -495,8 +495,9 @@ public class IntegrationUtil implements RemoteAccess {
 	public static Workable checkout(Workable workable) {
 		Workable result = null;
 		try {
-			if (WorkInProgressHelper.isWorkingCopy(workable)) {
-				result = workable;
+
+			if (WorkInProgressHelper.isCheckedOut(workable)) {
+				result = WorkInProgressHelper.service.workingCopyOf(workable);
 			} else {
 				CheckoutLink clink = WorkInProgressHelper.service.checkout(workable, WorkInProgressHelper.service.getCheckoutFolder(), "");
 				result = clink.getWorkingCopy();
@@ -509,6 +510,18 @@ public class IntegrationUtil implements RemoteAccess {
 			e.printStackTrace();
 		} catch (PersistenceException e) {
 			e.printStackTrace();
+		} catch (WTException e) {
+			e.printStackTrace();
+		}
+		return result;
+	}
+
+	public static boolean isCheckout(Workable workable) {
+		boolean result = false;
+		try {
+			if (WorkInProgressHelper.isCheckedOut(workable) || WorkInProgressHelper.isWorkingCopy(workable)) {
+				result = true;
+			}
 		} catch (WTException e) {
 			e.printStackTrace();
 		}
@@ -533,9 +546,26 @@ public class IntegrationUtil implements RemoteAccess {
 		return result;
 	}
 
+	public static Workable undoCheckout(Workable workable) {
+		Workable result = workable;
+		if (WorkInProgressHelper.isWorkingCopy(workable)) {
+			try {
+				result = WorkInProgressHelper.service.undoCheckout(workable);
+			} catch (WorkInProgressException e) {
+				e.printStackTrace();
+			} catch (WTPropertyVetoException e) {
+				e.printStackTrace();
+			} catch (PersistenceException e) {
+				e.printStackTrace();
+			} catch (WTException e) {
+				e.printStackTrace();
+			}
+		}
+		return result;
+	}
+
 	public static void updateName(WTDocument doc, String newName) {
 		if (newName != null && !newName.equals("") && !doc.getName().equals(newName)) {
-			doc = (WTDocument) IntegrationUtil.checkout(doc);
 			WTDocumentMaster master = (WTDocumentMaster) doc.getMaster();
 			WTDocumentMasterIdentity docMasterIdentity;
 			try {
@@ -552,7 +582,6 @@ public class IntegrationUtil implements RemoteAccess {
 
 	public static void updateName(WTPart part, String newName) {
 		if (newName != null && !newName.equals("") && !part.getName().equals(newName)) {
-			part = (WTPart) IntegrationUtil.checkout(part);
 			WTPartMaster master = (WTPartMaster) part.getMaster();
 			WTPartMasterIdentity partMasterIdentity;
 			try {

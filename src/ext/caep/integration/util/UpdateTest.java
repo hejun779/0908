@@ -14,14 +14,14 @@ public class UpdateTest {
 	public static void main(String[] args) {
 		ReferenceFactory factory = new ReferenceFactory();
 		try {
-			WTDocument doc = (WTDocument) factory.getReference("VR:wt.doc.WTDocument:63498").getObject();
-			doc = (WTDocument) IntegrationUtil.checkout(doc);
+			WTDocument doc = (WTDocument) factory.getReference("VR:wt.doc.WTDocument:64045").getObject();
+			// doc = (WTDocument) IntegrationUtil.checkout(doc);
 			WTDocumentMaster master = (WTDocumentMaster) doc.getMaster();
 			WTDocumentMasterIdentity partMasterIdentity = (WTDocumentMasterIdentity) master.getIdentificationObject();
 			// partMasterIdentity.setNumber(newNumber);
-			partMasterIdentity.setName("fdsff");
+			partMasterIdentity.setName("fdsff003");
 			IdentityHelper.service.changeIdentity(master, partMasterIdentity);
-			IntegrationUtil.checkin(doc);
+			// IntegrationUtil.checkin(doc);
 		} catch (WTRuntimeException e) {
 			e.printStackTrace();
 		} catch (WTException e) {

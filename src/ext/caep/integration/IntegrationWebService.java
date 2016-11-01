@@ -1,7 +1,9 @@
 package ext.caep.integration;
 
 import java.io.File;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import org.jdom.Element;
 
@@ -26,12 +28,13 @@ import ext.caep.integration.util.XMLUtil;
 import wt.method.RemoteAccess;
 
 public class IntegrationWebService implements RemoteAccess {
+	private Map<String, Object> parameters = new HashMap<String, Object>();
 
-	public static void main(String[] args) {
+	public void main(String[] args) {
 		userLoginService();
 	}
 
-	public static Group userLoginService() {
+	public Group userLoginService() {
 		Group group = new Group();
 		com.infoengine.object.factory.Element el = new com.infoengine.object.factory.Element();
 		el.addAtt(new Att("code", "0"));
@@ -55,7 +58,7 @@ public class IntegrationWebService implements RemoteAccess {
 	 * @param sharedFile
 	 * @return
 	 */
-	public static Group dataOperationService(String sharedFile) {
+	public Group dataOperationService(String sharedFile) {
 		Group group = new Group();
 		String data = "";
 		try {
@@ -87,11 +90,12 @@ public class IntegrationWebService implements RemoteAccess {
 	 * 根据state状态,ID值进行请求转发
 	 * 
 	 * @param root
+	 * @throws Exception
 	 */
-	private static void processDelegate(Object root, String state, String rootID) {
+	private void processDelegate(Object root, String state, String rootID) throws Exception {
 		// 创建:如果ID为空,不管state的值,表示创建,并且忽略所有子节点的state的状态,全部都视为创建
 		if (rootID.equals("")) {
-			new Create().process(root);
+			new Create().process(parameters, root);
 		}
 		// 删除:如果state表示删除,将删除此节点,忽略子节点的状态,并根据角色依次删除所有子节点
 		else if (state.equals(Constant.STATE_DELETE)) {
@@ -109,6 +113,8 @@ public class IntegrationWebService implements RemoteAccess {
 		// 下载:如果state表示下载,则下载此节点和所有子节点的文档主内容,忽略所有子节点的stae状态
 		else if (state.equals(Constant.STATE_DOWNLOAD)) {
 			Download.process(root);
+		} else if (state.equals(Constant.STATE_NOCHANGE)) {
+			childrenDelegate(root);
 		}
 	}
 
@@ -116,8 +122,9 @@ public class IntegrationWebService implements RemoteAccess {
 	 * 根据root节点的类型获取其子节点,并提交子节点进行处理
 	 * 
 	 * @param root
+	 * @throws Exception
 	 */
-	private static void childrenDelegate(Object root) {
+	private void childrenDelegate(Object root) throws Exception {
 		if (root instanceof Global) {
 			Global global = (Global) root;
 			List<Project> projects = global.getProjects();
@@ -128,8 +135,14 @@ public class IntegrationWebService implements RemoteAccess {
 			}
 		} else if (root instanceof Project) {
 			Project project = (Project) root;
+			parameters.put("currentProject", project);
+			parameters.put("parentNumber", project.getID());
+			parameters.put("numberPrefixObj", project);
+			parameters.put("currentFolder", Constant.FOLDER_PROJECT);
+
 			Files files = project.getFiles();
 			if (files != null && files.getClass() != null && !files.getFiles().isEmpty()) {
+
 				for (ext.caep.integration.bean.File file : files.getFiles()) {
 					processDelegate(file, file.getState(), file.getID());
 				}
@@ -140,13 +153,43 @@ public class IntegrationWebService implements RemoteAccess {
 					processDelegate(task, task.getState(), task.getID());
 				}
 			}
+		} else if (root instanceof Task) {
+			Task task = (Task) root;
+			parameters.put("currentTask", task);
+			parameters.put("parentNumber", task.getID());
+			parameters.put("numberPrefixObj", task);
+			parameters.put("currentFolder", Constant.FOLDER_PROJECT);
+			Files files = task.getFiles();
+			if (files != null && files.getFiles() != null && !files.getFiles().isEmpty()) {
+				for (ext.caep.integration.bean.File file : files.getFiles()) {
+					processDelegate(file, file.getState(), file.getID());
+				}
+			}
+			List<Software> softwares = task.getSoftwares();
+			if (softwares != null && !softwares.isEmpty()) {
+
+				for (Software software : softwares) {
+					processDelegate(software, software.getState(), software.getID());
+				}
+			}
 		} else if (root instanceof Software) {
 			Software software = (Software) root;
+			parameters.put("currentSoftware", software);
+			parameters.put("parentNumber", software.getID());
+			parameters.put("currentFolder", software.getName() + "文件");
 			List<Para> paras = software.getParas();
 			if (paras != null && !paras.isEmpty()) {
+
 				for (Para para : paras) {
 					processDelegate(para, para.getState(), para.getID());
 				}
+			}
+		} else if (root instanceof Para) {
+			Para para = (Para) root;
+			parameters.put("parentNumber", para.getID());
+			List<ext.caep.integration.bean.File> files = para.getFiles();
+			for (ext.caep.integration.bean.File file : files) {
+				processDelegate(file, file.getState(), file.getID());
 			}
 		} else if (root instanceof Files) {
 			Files files = (Files) root;
@@ -156,6 +199,9 @@ public class IntegrationWebService implements RemoteAccess {
 					processDelegate(file, file.getState(), file.getID());
 				}
 			}
+		} else if (root instanceof ext.caep.integration.bean.File) {
+			ext.caep.integration.bean.File file = (ext.caep.integration.bean.File) root;
+			processDelegate(file, file.getState(), file.getID());
 		}
 	}
 }
