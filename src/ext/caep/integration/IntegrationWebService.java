@@ -61,6 +61,7 @@ public class IntegrationWebService implements RemoteAccess {
 	public Group dataOperationService(String sharedFile) {
 		Group group = new Group();
 		String data = "";
+		com.infoengine.object.factory.Element el = new com.infoengine.object.factory.Element("");
 		try {
 			File file = IntegrationUtil.getSharedFile(sharedFile);
 			XMLUtil xml = new XMLUtil(file);
@@ -75,14 +76,16 @@ public class IntegrationWebService implements RemoteAccess {
 				data = outputFile.getPath();
 				JaxbUtil.object2xml(root, outputFile);
 			}
-			com.infoengine.object.factory.Element el = new com.infoengine.object.factory.Element("");
 			el.addAtt(new Att("code", "0"));
 			el.addAtt(new Att("message", ""));
 			el.addAtt(new Att("data", data));
-			group.addElement(el);
 		} catch (Exception e) {
 			e.printStackTrace();
+			el.addAtt(new Att("code", "1"));
+			el.addAtt(new Att("message", e.getMessage()));
+			el.addAtt(new Att("data", data));
 		}
+		group.addElement(el);
 		return group;
 	}
 

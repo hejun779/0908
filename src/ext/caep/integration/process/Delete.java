@@ -1,5 +1,6 @@
 package ext.caep.integration.process;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import ext.caep.integration.bean.File;
@@ -12,18 +13,14 @@ import ext.caep.integration.bean.Task;
 import ext.caep.integration.util.IntegrationUtil;
 import wt.doc.WTDocument;
 import wt.fc.PersistenceHelper;
+import wt.fc.PersistenceServerHelper;
 import wt.fc.QueryResult;
-import wt.fc.collections.WTHashSet;
 import wt.part.WTPart;
 import wt.part.WTPartDescribeLink;
 import wt.part.WTPartHelper;
-import wt.pom.PersistenceException;
 import wt.util.WTException;
-import wt.vc.Mastered;
 import wt.vc.VersionControlHelper;
 import wt.vc.Versioned;
-import wt.vc.wip.WorkInProgressHelper;
-import wt.vc.wip.Workable;
 
 public class Delete {
 	private Global currentGlobal;
@@ -94,7 +91,7 @@ public class Delete {
 	private void deleteTask(WTPart task) {
 		if (IntegrationUtil.isOwn(task)) {
 			List<WTPart> softwares = IntegrationUtil.getChildren(task);
-			task = deleteDocFromPart(task);
+			deleteDocFromPart(task);
 			delete(task);
 			for (WTPart software : softwares) {
 				deleteSoftware(software);
@@ -171,51 +168,41 @@ public class Delete {
 	}
 
 	private void delete(Versioned versioned) {
-		WTHashSet objsToDelete = new WTHashSet();
-		Mastered master = versioned.getMaster();
 		try {
-			QueryResult qr = VersionControlHelper.service.allVersionsOf(master);
-			if (qr != null)
-				while (qr.hasMoreElements()) {
-					Object objQr = qr.nextElement();
-					if (objQr instanceof Workable) {
-						Workable workable = (Workable) objQr;
-						if (WorkInProgressHelper.isWorkingCopy(workable)) {
-							continue;
-						}
-					}
-					objsToDelete.add(objQr);
-				}
-			if (!objsToDelete.isEmpty()) {
-				PersistenceHelper.manager.delete(objsToDelete);
-			}
-		} catch (PersistenceException e) {
-			e.printStackTrace();
+			PersistenceServerHelper.manager.remove(versioned);
 		} catch (WTException e) {
 			e.printStackTrace();
 		}
 	}
 
-	private WTPart deleteDocFromPart(WTPart part) {
-		WTPart result = part;
+	private void deleteDocFromPart(WTPart part) {
 		try {
-			QueryResult qr = WTPartHelper.service.getDescribedByWTDocuments(part, false);
-			if (qr.size() > 0) {
-				part = (WTPart) IntegrationUtil.checkout(part);
-				while (qr.hasMoreElements()) {
-					WTPartDescribeLink link = (WTPartDescribeLink) qr.nextElement();
-					WTDocument doc = link.getDescribedBy();
-					PersistenceHelper.manager.delete(link);
-					if (!IntegrationUtil.hasDescribePart(doc)) {
-						delete(doc);
+			List<WTDocument> docs = new ArrayList<WTDocument>();
+			QueryResult all = VersionControlHelper.service.allIterationsOf(part.getMaster());
+			while (all.hasMoreElements()) {
+				WTPart version = (WTPart) all.nextElement();
+				QueryResult qr = WTPartHelper.service.getDescribedByWTDocuments(version, false);
+				if (qr.size() > 0) {
+					while (qr.hasMoreElements()) {
+						WTPartDescribeLink link = (WTPartDescribeLink) qr.nextElement();
+						WTDocument doc = link.getDescribedBy();
+						if (!docs.contains(doc)) {
+							docs.add(doc);
+						}
+						PersistenceServerHelper.manager.remove(link);
 					}
 				}
-				result = (WTPart) IntegrationUtil.checkin(part);
+			}
+			if (!docs.isEmpty()) {
+				for (WTDocument doc : docs) {
+					if (!IntegrationUtil.hasDescribePart(doc)) {
+						PersistenceHelper.manager.delete(doc);
+					}
+				}
 			}
 		} catch (WTException e) {
 			e.printStackTrace();
 		}
-		return result;
 	}
 
 }

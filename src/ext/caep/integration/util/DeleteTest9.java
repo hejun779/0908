@@ -1,6 +1,8 @@
 package ext.caep.integration.util;
 
 import java.io.File;
+import java.lang.reflect.InvocationTargetException;
+import java.rmi.RemoteException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -9,24 +11,28 @@ import ext.caep.integration.bean.Global;
 import ext.caep.integration.bean.Project;
 import wt.doc.WTDocument;
 import wt.fc.PersistenceHelper;
+import wt.fc.PersistenceServerHelper;
 import wt.fc.QueryResult;
 import wt.fc.ReferenceFactory;
 import wt.fc.collections.WTCollection;
 import wt.fc.collections.WTHashSet;
 import wt.method.RemoteAccess;
+import wt.method.RemoteMethodServer;
 import wt.part.WTPart;
 import wt.part.WTPartDescribeLink;
 import wt.part.WTPartHelper;
+import wt.pom.PersistenceException;
 import wt.util.WTException;
 import wt.util.WTPropertyVetoException;
 import wt.util.WTRuntimeException;
+import wt.vc.Mastered;
 import wt.vc.VersionControlHelper;
 import wt.vc.Versioned;
 import wt.vc.wip.CheckoutLink;
 import wt.vc.wip.WorkInProgressHelper;
 import wt.vc.wip.Workable;
 
-public class DeleteTest implements RemoteAccess {
+public class DeleteTest9 implements RemoteAccess {
 	@SuppressWarnings("rawtypes")
 	private static Class TaskResultClass;
 
@@ -34,7 +40,7 @@ public class DeleteTest implements RemoteAccess {
 		// ReferenceFactory factory = new ReferenceFactory();
 		// try {
 		// WTPart p = (WTPart)
-		// factory.getReference("OR:wt.part.WTPart:63681").getObject();
+		// factory.getReference("OR:wt.part.WTPart:93991").getObject();
 		// PersistenceHelper.manager.delete(p);
 		// } catch (WTRuntimeException e) {
 		// e.printStacjkTrace();
@@ -43,13 +49,86 @@ public class DeleteTest implements RemoteAccess {
 		// }
 
 		// deleteDocLink();
-		testNull();
+
+		deleteDoc();
 	}
 
 	static {
 		try {
 			TaskResultClass = Class.forName("com.ptc.core.task.TaskResult");
 		} catch (ClassNotFoundException e) {
+			e.printStackTrace();
+		}
+	}
+
+	public static void deleteDoc() {
+		if (RemoteMethodServer.ServerFlag) {
+			ReferenceFactory factory = new ReferenceFactory();
+			try {
+				List<WTDocument> docs = new ArrayList<WTDocument>();
+				WTPart part = (WTPart) factory.getReference("VR:wt.part.WTPart:63791").getObject();
+				QueryResult all = VersionControlHelper.service.allIterationsOf(part.getMaster());
+				while (all.hasMoreElements()) {
+					WTPart version = (WTPart) all.nextElement();
+
+					QueryResult qr = WTPartHelper.service.getDescribedByWTDocuments(version, false);
+					if (qr.size() > 0) {
+						while (qr.hasMoreElements()) {
+							WTPartDescribeLink link = (WTPartDescribeLink) qr.nextElement();
+							WTDocument doc = link.getDescribedBy();
+							if (!docs.contains(doc)) {
+								docs.add(doc);
+							}
+							PersistenceServerHelper.manager.remove(link);
+						}
+					}
+				}
+				if (!docs.isEmpty()) {
+					for (WTDocument doc : docs) {
+						if (!IntegrationUtil.hasDescribePart(doc)) {
+							PersistenceHelper.manager.delete(doc);
+						}
+					}
+				}
+
+			} catch (WTRuntimeException e) {
+				e.printStackTrace();
+			} catch (WTException e) {
+				e.printStackTrace();
+			}
+		} else {
+			try {
+				RemoteMethodServer.getDefault().invoke("deleteDoc", DeleteTest9.class.getName(), null, null, null);
+			} catch (RemoteException e) {
+				e.printStackTrace();
+			} catch (InvocationTargetException e) {
+				e.printStackTrace();
+			}
+		}
+	}
+
+	private static void delete(Versioned versioned) {
+		WTHashSet objsToDelete = new WTHashSet();
+		Mastered master = versioned.getMaster();
+		try {
+			QueryResult qr = VersionControlHelper.service.allVersionsOf(master);
+			if (qr != null)
+				while (qr.hasMoreElements()) {
+					Object objQr = qr.nextElement();
+					if (objQr instanceof Workable) {
+						Workable workable = (Workable) objQr;
+						if (WorkInProgressHelper.isWorkingCopy(workable)) {
+							continue;
+						}
+					}
+					objsToDelete.add(objQr);
+				}
+			if (!objsToDelete.isEmpty()) {
+				PersistenceServerHelper.manager.remove(objsToDelete);
+			}
+		} catch (PersistenceException e) {
+			e.printStackTrace();
+		} catch (WTException e) {
 			e.printStackTrace();
 		}
 	}
@@ -82,7 +161,7 @@ public class DeleteTest implements RemoteAccess {
 	public static void deleteDocLink() {
 		ReferenceFactory factory = new ReferenceFactory();
 		try {
-			WTPart p = (WTPart) factory.getReference("VR:wt.part.WTPart:63592").getObject();
+			WTPart p = (WTPart) factory.getReference("VR:wt.part.WTPart:93592").getObject();
 			QueryResult qr = WTPartHelper.service.getDescribedByDocuments(p, false);
 			System.out.println(qr.size());
 			while (qr.hasMoreElements()) {
@@ -127,9 +206,9 @@ public class DeleteTest implements RemoteAccess {
 		WTHashSet objsToDelete = new WTHashSet();
 		ReferenceFactory factory = new ReferenceFactory();
 		try {
-			WTPart p = (WTPart) factory.getReference("VR:wt.part.WTPart:63518").getObject();
-			WTPart c = (WTPart) factory.getReference("VR:wt.part.WTPart:63526").getObject();
-			WTDocument d = (WTDocument) factory.getReference("VR:wt.doc.WTDocument:63317").getObject();
+			WTPart p = (WTPart) factory.getReference("VR:wt.part.WTPart:93519").getObject();
+			WTPart c = (WTPart) factory.getReference("VR:wt.part.WTPart:93529").getObject();
+			WTDocument d = (WTDocument) factory.getReference("VR:wt.doc.WTDocument:93319").getObject();
 			// if (obj instanceof Workable) {
 			// Workable workable = (Workable) obj;
 			// if (WorkInProgressHelper.isWorkingCopy(workable)) {

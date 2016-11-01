@@ -56,6 +56,7 @@ public class Update {
 			if (!part.getName().equals(project.getName())) {
 				IntegrationUtil.updateName(part, project.getName());
 			}
+
 			Vector return_objects = new Vector();
 			Hashtable cmd_line = new Hashtable();
 			Hashtable partAttrs = new Hashtable();
