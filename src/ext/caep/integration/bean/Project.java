@@ -11,6 +11,7 @@ import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 
 import ext.caep.integration.util.Constant;
+import ext.caep.integration.util.IBAUtil;
 import ext.caep.integration.util.IntegrationUtil;
 import ext.caep.integration.util.NumberingUtil;
 import wt.iba.value.service.LoadValue;
@@ -48,8 +49,9 @@ public class Project {
 		this.name = project.getName();
 		this.ID = project.getNumber();
 		this.state = "";
-		// TODO
-		this.describe = "";
+		IBAUtil iba = new IBAUtil(project);
+		this.describe = iba.getIBAValue(Constant.ATTR_DESCRIBE);
+		this.type = iba.getIBAValue(Constant.ATTR_CAEP_GX);
 	}
 
 	@XmlAttribute(name = "ID")

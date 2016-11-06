@@ -43,6 +43,6 @@ public class Constant {
 	public static final String ATTR_CAEP_LXBS = "caep_lxbs";// 文档软属性类型标识
 	public static final String ATTR_CAEP_AUTHOR = "author";// 文档软属性作者
 	public static final String ATTR_CAEP_ORGAN = "organ";// 文档软属性部门
-	public static final Object ATTR_CAEP_GX = "caep_gx";// 方案(部件)软属性构型
-	public static final Object ATTR_DESCRIBE = "describe";// 方案/计算任务软属性构型
+	public static final String ATTR_CAEP_GX = "caep_gx";// 方案(部件)软属性构型
+	public static final String ATTR_DESCRIBE = "describe";// 方案/计算任务软属性构型
 }

@@ -18,21 +18,20 @@ import wt.part.WTPart;
 import wt.util.WTException;
 
 public class Synchronize extends DataOperation {
-	public static Object process(Object root) {
+	public static void process(Object root) {
 		if (root instanceof Global) {
-			return syncGlobal((Global) root);
+			syncGlobal((Global) root);
 		} else if (root instanceof Project) {
-			return syncProject((Project) root);
+			syncProject((Project) root);
 		} else if (root instanceof Task) {
-			return syncTask((Task) root);
+			syncTask((Task) root);
 		} else if (root instanceof Software) {
-			return syncSoftware((Software) root);
+			syncSoftware((Software) root);
 		} else if (root instanceof Para) {
-			return syncPara((Para) root);
+			syncPara((Para) root);
 		} else if (root instanceof File) {
-			return syncFile((File) root);
+			syncFile((File) root);
 		}
-		return null;
 	}
 
 	/**
@@ -41,17 +40,16 @@ public class Synchronize extends DataOperation {
 	 * @param old
 	 * @return
 	 */
-	private static Global syncGlobal(Global old) {
-		Global globalBean = new Global();
-		globalBean.setName(old.getName());
-		globalBean.setState("");
+	private static void syncGlobal(Global old) {
+		old.setState("");
 		List<WTPart> projects = IntegrationUtil.getAllProject();
 		List<Project> projectBeans = new ArrayList<Project>();
 		for (WTPart project : projects) {
 			projectBeans.add(syncProject(project));
 		}
-		globalBean.setProjects(projectBeans);
-		return globalBean;
+		if (!projectBeans.isEmpty()) {
+			old.setProjects(projectBeans);
+		}
 	}
 
 	/**
@@ -70,7 +68,9 @@ public class Synchronize extends DataOperation {
 		for (WTPart task : tasks) {
 			taskBeans.add(syncTask(task));
 		}
-		projectBean.setTasks(taskBeans);
+		if (!taskBeans.isEmpty()) {
+			projectBean.setTasks(taskBeans);
+		}
 		List<File> files = syncFiles(project);
 		if (files != null && !files.isEmpty()) {
 			Files file = new Files();
@@ -80,9 +80,11 @@ public class Synchronize extends DataOperation {
 		return projectBean;
 	}
 
-	private static Project syncProject(Project old) {
+	private static void syncProject(Project old) {
 		WTPart project = IntegrationUtil.getPartFromNumber(old.getID());
-		return syncProject(project);
+		Project newProject = syncProject(project);
+		old.setFiles(newProject.getFiles());
+		old.setTasks(newProject.getTasks());
 	}
 
 	/**
@@ -91,10 +93,14 @@ public class Synchronize extends DataOperation {
 	 * @param oldOne
 	 * @return
 	 */
-	private static Task syncTask(Task old) {
+	private static void syncTask(Task old) {
 		WTPart task = IntegrationUtil.getPartFromNumber(old.getID());
-		return syncTask(task);
-
+		Task updated = syncTask(task);
+		old.setName(task.getName());
+		old.setDescribe(updated.getDescribe());
+		old.setFiles(updated.getFiles());
+		old.setSoftwares(updated.getSoftwares());
+		old.setState(updated.getState());
 	}
 
 	private static Task syncTask(WTPart task) {
@@ -104,6 +110,16 @@ public class Synchronize extends DataOperation {
 			Files file = new Files();
 			file.setFiles(files);
 			taskBean.setFiles(file);
+		}
+		List<WTPart> softwareParts = IntegrationUtil.getChildren(task);
+		if (softwareParts != null && !softwareParts.isEmpty()) {
+			List<Software> softwares = new ArrayList<Software>();
+			for (WTPart software : softwareParts) {
+				softwares.add(syncSoftware(software));
+			}
+			taskBean.setSoftwares(softwares);
+		} else {
+			taskBean.setSoftwares(null);
 		}
 		return taskBean;
 	}
@@ -116,13 +132,24 @@ public class Synchronize extends DataOperation {
 	 */
 	private static Software syncSoftware(WTPart software) {
 		Software softwareBean = new Software(software);
+		List<WTPart> paraParts = IntegrationUtil.getChildren(software);
+		if (paraParts != null && !paraParts.isEmpty()) {
+			List<Para> paras = new ArrayList<Para>();
+			for (WTPart paraPart : paraParts) {
+				paras.add(syncPara(paraPart));
+			}
+			softwareBean.setParas(paras);
+		}
 		return softwareBean;
 
 	}
 
-	private static Software syncSoftware(Software old) {
+	private static void syncSoftware(Software old) {
 		WTPart software = IntegrationUtil.getPartFromNumber(old.getID());
-		return syncSoftware(software);
+		Software updated = syncSoftware(software);
+		old.setName(updated.getName());
+		old.setParas(updated.getParas());
+		old.setState(updated.getState());
 	}
 
 	/**
@@ -137,9 +164,12 @@ public class Synchronize extends DataOperation {
 		return paraBean;
 	}
 
-	private static Para syncPara(Para old) {
+	private static void syncPara(Para old) {
 		WTPart para = IntegrationUtil.getPartFromNumber(old.getID());
-		return syncPara(para);
+		Para updated = syncPara(para);
+		old.setFiles(updated.getFiles());
+		old.setName(updated.getName());
+		old.setState(updated.getState());
 	}
 
 	/**
@@ -153,9 +183,16 @@ public class Synchronize extends DataOperation {
 		return fileBean;
 	}
 
-	private static File syncFile(File old) {
+	private static void syncFile(File old) {
 		WTDocument file = IntegrationUtil.getDocFromNumber(old.getID());
-		return syncFile(file);
+		File updated = syncFile(file);
+		old.setName(updated.getName());
+		old.setAuthor(updated.getAuthor());
+		old.setOrgan(updated.getOrgan());
+		old.setType(updated.getType());
+		old.setDescribe(updated.getDescribe());
+		old.setState("");
+
 	}
 
 	/**

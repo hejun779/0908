@@ -175,9 +175,9 @@ public class XMLUtil {
 	 * 
 	 * @return
 	 */
-	public String outputString(Element el) {
+	public static String outputString(Element el) {
 		String output = "";
-		if (this.doc != null) {
+		if (el != null) {
 			Format format = Format.getCompactFormat();
 			format.setEncoding("UTF-8");
 			format.setLineSeparator("\r\n");

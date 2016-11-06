@@ -1,6 +1,7 @@
 package ext.caep.integration.util;
 
 import java.io.File;
+import java.io.StringReader;
 
 import javax.xml.bind.JAXBContext;
 import javax.xml.bind.JAXBException;
@@ -48,7 +49,9 @@ public class JaxbUtil {
 			try {
 				JAXBContext context = JAXBContext.newInstance(cls);
 				Unmarshaller unmarshaller = context.createUnmarshaller();
-				result = unmarshaller.unmarshal(xmlFile);
+				String rootContent = XMLUtil.outputString(root);
+				StringReader reader = new StringReader(rootContent);
+				result = unmarshaller.unmarshal(reader);
 			} catch (JAXBException e) {
 				e.printStackTrace();
 			}

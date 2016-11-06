@@ -73,7 +73,7 @@ public class IntegrationWebService implements RemoteAccess {
 			// 只有state状态为删除的时候没有输出文件
 			if (!rootState.equals(Constant.STATE_DELETE)) {
 				File outputFile = IntegrationUtil.createShareFile();
-				data = outputFile.getPath();
+				data = outputFile.getPath();// TODO
 				JaxbUtil.object2xml(root, outputFile);
 			}
 			el.addAtt(new Att("code", "0"));

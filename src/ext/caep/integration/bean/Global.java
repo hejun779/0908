@@ -16,6 +16,8 @@ public class Global {
 	private String name;
 	@XmlAttribute(name = "state")
 	private String state = "";
+	@XmlAttribute(name = "ID")
+	private String ID = "";
 	@XmlElement(name = "Project")
 	private List<Project> projects;
 
@@ -45,6 +47,14 @@ public class Global {
 
 	public void setProjects(List<Project> projects) {
 		this.projects = projects;
+	}
+
+	public String getID() {
+		return ID;
+	}
+
+	public void setID(String iD) {
+		ID = iD;
 	}
 
 }

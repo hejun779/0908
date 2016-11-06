@@ -9,6 +9,7 @@ import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlRootElement;
 
 import ext.caep.integration.util.Constant;
+import ext.caep.integration.util.IBAUtil;
 import ext.caep.integration.util.IntegrationUtil;
 import ext.caep.integration.util.NumberingUtil;
 import wt.doc.LoadDoc;
@@ -59,11 +60,13 @@ public class File {
 		this.name = doc.getName();
 		this.ID = doc.getNumber();
 		this.path = "";
-		this.author = doc.getCreator().getName();
 		this.describe = doc.getDescription() == null ? "" : doc.getDescription();
-		this.type = "";// TODO
+		IBAUtil iba = new IBAUtil(doc);
+
+		this.author = iba.getIBAValue(Constant.ATTR_CAEP_AUTHOR);
+		this.type = iba.getIBAValue(Constant.ATTR_CAEP_LXBS);
+		this.organ = iba.getIBAValue(Constant.ATTR_CAEP_ORGAN);
 		this.state = "";
-		// this.organ TODO
 	}
 
 	@XmlAttribute(name = "name")

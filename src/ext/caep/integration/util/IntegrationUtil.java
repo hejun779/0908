@@ -245,7 +245,7 @@ public class IntegrationUtil implements RemoteAccess {
 				System.out.println(user.getName());
 				ArrayList roles = (ArrayList) entry.getValue();
 				for (Object o : roles) {
-					if (principal.getName().equals(user.getName()) && o.toString().equalsIgnoreCase("PRODUCT MANAGER")) {
+					if (principal.getName().equals(user.getName()) && o.toString().equalsIgnoreCase("PROJECT ADMIN")) {
 						return true;
 					}
 				}
@@ -269,7 +269,7 @@ public class IntegrationUtil implements RemoteAccess {
 				System.out.println(user.getName());
 				ArrayList roles = (ArrayList) entry.getValue();
 				for (Object o : roles) {
-					if (principal.getName().equals(user.getName())) {
+					if (principal.getName().equals(user.getName()) && o.toString().equalsIgnoreCase("OPTICAL ENGINEER")) {
 						return true;
 					}
 				}
