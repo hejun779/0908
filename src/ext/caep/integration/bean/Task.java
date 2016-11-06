@@ -108,7 +108,7 @@ public class Task {
 	public void newTask(Project project) throws Exception {
 		if (this.ID == null || this.ID.equals("")) {
 			this.create = true;
-			String number = NumberingUtil.getNumber(project, null);
+			String number = NumberingUtil.getNumber(project, this);
 			this.ID = number;
 			partAttrs.put("partNumber", number);
 			partAttrs.put("partName", this.name);

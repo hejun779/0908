@@ -11,7 +11,7 @@ import ext.caep.integration.bean.Project;
 import ext.caep.integration.bean.Software;
 import ext.caep.integration.bean.Task;
 import ext.caep.integration.util.Constant;
-import wt.pom.PersistenceException;
+import ext.caep.integration.util.IntegrationUtil;
 
 /**
  * 
@@ -40,6 +40,7 @@ public class Create {
 		// this.currentPara = (Para) parameters.get("currentPara");
 		this.currentFolder = (String) parameters.get("currentFolder");
 		this.parentNumber = (String) parameters.get("parentNumber");
+		this.numberPrefixObj = parameters.get("numberPrefixObj");
 		if (root instanceof Global) {
 			createGlobal((Global) root);
 		} else if (root instanceof Project) {
@@ -64,36 +65,40 @@ public class Create {
 	}
 
 	private void createGlobal(Global root) throws Exception {
-		try {
-			List<Project> projects = root.getProjects();
-			if (projects != null && !projects.isEmpty()) {
+		List<Project> projects = root.getProjects();
+		if (projects != null && !projects.isEmpty()) {
+			if (IntegrationUtil.isAdmin()) {
 				for (Project project : projects) {
 					createProject(project);
 				}
+			} else {
+				throw new Exception("不是方案管理员,不能创建方案");
 			}
-		} catch (PersistenceException e) {
-			e.printStackTrace();
 		}
 	}
 
 	private void createProject(Project project) throws Exception {
-		project.newProject();
-		this.currentProject = project;
-		this.numberPrefixObj = project;
-		this.parentNumber = project.getID();
-		Files files = project.getFiles();
-		if (files != null && files.getFiles() != null && !files.getFiles().isEmpty()) {
-			for (File projectFile : files.getFiles()) {
-				projectFile.newDocument(project.getID(), project, Constant.FOLDER_PROJECT);
+		if (IntegrationUtil.isAdmin()) {
+			project.newProject();
+			this.currentProject = project;
+			this.numberPrefixObj = project;
+			this.parentNumber = project.getID();
+			Files files = project.getFiles();
+			if (files != null && files.getFiles() != null && !files.getFiles().isEmpty()) {
+				for (File projectFile : files.getFiles()) {
+					projectFile.newDocument(project.getID(), project, Constant.FOLDER_PROJECT);
+				}
 			}
-		}
-		List<Task> tasks = project.getTasks();
-		if (tasks != null && !tasks.isEmpty()) {
-			for (Task task : tasks) {
-				createTask(task);
+			List<Task> tasks = project.getTasks();
+			if (tasks != null && !tasks.isEmpty()) {
+				for (Task task : tasks) {
+					createTask(task);
+				}
 			}
+			project.endProject();
+		} else {
+			throw new Exception("不是方案管理员,不能创建方案");
 		}
-		project.endProject();
 	}
 
 	private void createTask(Task task) throws Exception {
@@ -121,6 +126,7 @@ public class Create {
 	private void createSoftware(Software software) throws Exception {
 		software.newSoftware(currentTask.getID());
 		this.parentNumber = software.getID();
+		this.currentSoftware = software;
 		this.currentFolder = software.getName() + "文件";
 		// 创建参数
 		List<Para> paras = software.getParas();

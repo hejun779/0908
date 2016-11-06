@@ -117,7 +117,7 @@ public class Project {
 		this.files = files;
 	}
 
-	public WTPart newProject() throws Exception {
+	public void newProject() throws Exception {
 		if (this.ID == null || this.ID.equals("")) {
 			create = true;
 			String number = NumberingUtil.getNumber(null, this);// TODO
@@ -140,21 +140,12 @@ public class Project {
 			LoadValue.createIBAValue(partAttrs, cmd_line, return_objects);
 
 			LoadPart.beginCreateWTPart(partAttrs, cmd_line, return_objects);
-			if (return_objects.size() > 0 && return_objects.get(0) instanceof WTPart) {
-				return (WTPart) return_objects.get(0);
-			}
 		}
-		return null;
 	}
 
-	public WTPart endProject() {
+	public void endProject() {
 		if (create) {
 			LoadPart.endCreateWTPart(partAttrs, cmd_line, return_objects);
-			if (return_objects.size() > 0 && return_objects.get(0) instanceof WTPart) {
-				return (WTPart) return_objects.get(0);
-
-			}
 		}
-		return null;
 	}
 }

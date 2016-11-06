@@ -222,12 +222,16 @@ public class NumberingUtil {
 		return getNumber(props);
 	}
 
-	public static Map<String, String> getMapForNumber(Object parent, Object obj) {
+	public static Map<String, String> getMapForNumber(Object parent, Object obj) throws Exception {
 		Map<String, String> map = new HashMap<String, String>();
 		if (obj instanceof Project) {
 			Project project = (Project) obj;
 			map.put("typeId", "Project");
-			map.put("GX", project.getType());
+			if (project.getType() != null && project.getType().length() > 0) {
+				map.put("GX", project.getType());
+			} else {
+				throw new Exception("方案的构型属性不能为空");
+			}
 		} else if (obj instanceof Task) {
 			map.put("typeId", "Task");
 			Project project = (Project) parent;
@@ -236,10 +240,14 @@ public class NumberingUtil {
 			map.put("typeId", "Software");
 		} else if (obj instanceof Para) {
 			map.put("typeId", "Para");
-		} else if (obj instanceof File) {
+		} else if (obj instanceof ext.caep.integration.bean.File) {
 			ext.caep.integration.bean.File file = (ext.caep.integration.bean.File) obj;
 			map.put("typeId", "File");
-			map.put("FileType", file.getType());
+			if (file.getType() != null && file.getType().length() > 0) {
+				map.put("FileType", file.getType());
+			} else {
+				throw new Exception("文档的类型标识不能为空");
+			}
 			if (parent instanceof Project) {
 				Project project = (Project) parent;
 				map.put("Project", project.getID());

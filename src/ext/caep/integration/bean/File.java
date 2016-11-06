@@ -157,7 +157,7 @@ public class File {
 		return doc;
 	}
 
-	public WTDocument newDocument(String parentNumber, Object parent, String folder) throws Exception {
+	public void newDocument(String parentNumber, Object parent, String folder) throws Exception {
 		if (this.ID == null || this.ID.equals("")) {
 			String number = NumberingUtil.getNumber(parent, this);
 			this.ID = number;
@@ -173,7 +173,10 @@ public class File {
 			docAttrs.put("parentContainerPath", "/wt.inf.container.OrgContainer=ptc/wt.pdmlink.PDMLinkProduct=" + IntegrationUtil.getProperty("product"));
 			docAttrs.put("department", "DESIGN");
 			docAttrs.put("primarycontenttype", "ApplicationData");
-			docAttrs.put("path", this.path);
+			if (this.path != null && this.path.length() > 0) {
+				String path = IntegrationUtil.getShareFileHost() + java.io.File.separator + IntegrationUtil.getShareFilePath() + java.io.File.separator + this.path;
+				docAttrs.put("path", path);
+			}
 
 			LoadDoc.beginCreateWTDocument(docAttrs, cmd_line, return_objects);
 
@@ -182,26 +185,24 @@ public class File {
 			docAttrs.put("value1", this.type);
 			LoadValue.createIBAValue(docAttrs, cmd_line, return_objects);
 
-			Hashtable organ = new Hashtable();
-			docAttrs.put("definition", Constant.ATTR_CAEP_ORGAN);
-			docAttrs.put("value1", this.organ);
-			LoadValue.createIBAValue(docAttrs, cmd_line, return_objects);
-
-			docAttrs.put("definition", Constant.ATTR_CAEP_AUTHOR);
-			docAttrs.put("value1", this.author);
-			LoadValue.createIBAValue(docAttrs, cmd_line, return_objects);
-
+			if (this.organ != null && this.organ.length() > 0) {
+				Hashtable organ = new Hashtable();
+				docAttrs.put("definition", Constant.ATTR_CAEP_ORGAN);
+				docAttrs.put("value1", this.organ);
+				LoadValue.createIBAValue(docAttrs, cmd_line, return_objects);
+			}
+			if (this.author != null && this.author.length() > 0) {
+				docAttrs.put("definition", Constant.ATTR_CAEP_AUTHOR);
+				docAttrs.put("value1", this.author);
+				LoadValue.createIBAValue(docAttrs, cmd_line, return_objects);
+			}
 			LoadDoc.endCreateWTDocument(docAttrs, cmd_line, return_objects);
 
 			if (parentNumber != null && !parentNumber.equals("")) {
 				createPartDocLink(parentNumber);
 			}
-
-			if (return_objects.size() > 0 && return_objects.get(0) instanceof WTDocument) {
-				return (WTDocument) return_objects.get(0);
-			}
+			this.path = "";
 		}
-		return null;
 	}
 
 	/**

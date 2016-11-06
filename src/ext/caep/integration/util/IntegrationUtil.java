@@ -595,4 +595,21 @@ public class IntegrationUtil implements RemoteAccess {
 			}
 		}
 	}
+
+	public static String getShareFileHost() {
+		return shareFileHost;
+	}
+
+	public static void setShareFileHost(String shareFileHost) {
+		IntegrationUtil.shareFileHost = shareFileHost;
+	}
+
+	public static String getShareFilePath() {
+		return shareFilePath;
+	}
+
+	public static void setShareFilePath(String shareFilePath) {
+		IntegrationUtil.shareFilePath = shareFilePath;
+	}
+
 }

@@ -26,6 +26,7 @@ import ext.caep.integration.util.IntegrationUtil;
 import ext.caep.integration.util.JaxbUtil;
 import ext.caep.integration.util.XMLUtil;
 import wt.method.RemoteAccess;
+import wt.pom.Transaction;
 
 public class IntegrationWebService implements RemoteAccess {
 	private Map<String, Object> parameters = new HashMap<String, Object>();
@@ -62,7 +63,10 @@ public class IntegrationWebService implements RemoteAccess {
 		Group group = new Group();
 		String data = "";
 		com.infoengine.object.factory.Element el = new com.infoengine.object.factory.Element("");
+		Transaction trx = null;
 		try {
+			trx = new Transaction();
+			trx.start();
 			File file = IntegrationUtil.getSharedFile(sharedFile);
 			XMLUtil xml = new XMLUtil(file);
 			Element rootEl = (Element) xml.getRoot().getChildren().get(0);
@@ -74,12 +78,22 @@ public class IntegrationWebService implements RemoteAccess {
 			if (!rootState.equals(Constant.STATE_DELETE)) {
 				File outputFile = IntegrationUtil.createShareFile();
 				data = outputFile.getPath();// TODO
+				String parent = "\\\\" + IntegrationUtil.getShareFileHost() + File.separator + IntegrationUtil.getShareFilePath() + File.separator;
+				if (data.startsWith(parent)) {
+					data = data.substring(parent.length());
+				}
 				JaxbUtil.object2xml(root, outputFile);
 			}
 			el.addAtt(new Att("code", "0"));
 			el.addAtt(new Att("message", ""));
 			el.addAtt(new Att("data", data));
+			// file.delete();//TODO
+			trx.commit();
+			trx = null;
 		} catch (Exception e) {
+			if (trx != null) {
+				trx.rollback();
+			}
 			e.printStackTrace();
 			el.addAtt(new Att("code", "1"));
 			el.addAtt(new Att("message", e.getMessage()));
