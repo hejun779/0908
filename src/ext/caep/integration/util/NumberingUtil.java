@@ -98,7 +98,7 @@ public class NumberingUtil {
 		String value1 = props.get(PROP_PROJECT);
 		long number = getSequenceNumber(value1);
 		String value2 = String.format("%05d", (int) number);
-		value1 = value1 + "-" + value2;
+		value1 = value1 + "-T" + value2;
 		number = getSequenceNumber(PROP_TASK);
 		String value3 = String.format("%05d", (int) number);
 		value = value1 + "-" + value3;

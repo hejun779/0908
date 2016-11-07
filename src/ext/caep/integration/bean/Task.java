@@ -119,12 +119,13 @@ public class Task {
 			partAttrs.put("folder", "/Default/" + Constant.FOLDER_PROJECT);
 			partAttrs.put("view", "Design");
 
-			partAttrs.put("definition", Constant.ATTR_DESCRIBE);
-			partAttrs.put("value1", this.describe);
-			LoadValue.createIBAValue(partAttrs, cmd_line, return_objects);
-
 			LoadPart.beginCreateWTPart(partAttrs, cmd_line, return_objects);
-
+			if (this.describe != null && this.describe.length() > 0) {
+				partAttrs.put("definition", Constant.ATTR_DESCRIBE);
+				partAttrs.put("value1", this.describe);
+				LoadValue.createIBAValue(partAttrs, cmd_line, return_objects);
+				LoadValue.applySoftAttributes(LoadPart.getPart());
+			}
 			if (project != null && project.getID() != null && !project.getID().equals("")) {
 				Hashtable assmAttrs = new Hashtable();
 				assmAttrs.put("assemblyPartNumber", project.getID());

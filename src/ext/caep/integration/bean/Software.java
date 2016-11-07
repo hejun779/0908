@@ -88,7 +88,7 @@ public class Software {
 			partAttrs.put("partName", this.name);
 			partAttrs.put("parentContainerPath", "/wt.inf.container.OrgContainer=ptc/wt.pdmlink.PDMLinkProduct=" + IntegrationUtil.getProperty("product"));
 			partAttrs.put("type", "component");
-			partAttrs.put("typedef", Constant.SOFTTYPE_PROJECT);
+			partAttrs.put("typedef", Constant.SOFTTYPE_SOFTWARE);
 			partAttrs.put("source", "make");
 			partAttrs.put("folder", "/Default/" + Constant.FOLDER_PROJECT);
 			partAttrs.put("view", "Design");

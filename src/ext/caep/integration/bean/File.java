@@ -174,7 +174,7 @@ public class File {
 			docAttrs.put("department", "DESIGN");
 			docAttrs.put("primarycontenttype", "ApplicationData");
 			if (this.path != null && this.path.length() > 0) {
-				String path = IntegrationUtil.getShareFileHost() + java.io.File.separator + IntegrationUtil.getShareFilePath() + java.io.File.separator + this.path;
+				String path = "\\\\" + IntegrationUtil.getShareFileHost() + java.io.File.separator + IntegrationUtil.getShareFilePath() + java.io.File.separator + this.path;
 				docAttrs.put("path", path);
 			}
 

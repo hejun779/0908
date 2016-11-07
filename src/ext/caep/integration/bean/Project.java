@@ -120,7 +120,7 @@ public class Project {
 	public void newProject() throws Exception {
 		if (this.ID == null || this.ID.equals("")) {
 			create = true;
-			String number = NumberingUtil.getNumber(null, this);// TODO
+			String number = NumberingUtil.getNumber(null, this);
 			this.ID = number;
 			partAttrs.put("partNumber", number);
 			partAttrs.put("partName", this.name);
@@ -131,15 +131,18 @@ public class Project {
 			partAttrs.put("folder", "/Default/" + Constant.FOLDER_PROJECT);
 			partAttrs.put("view", "Design");
 
+			LoadPart.beginCreateWTPart(partAttrs, cmd_line, return_objects);
+
 			partAttrs.put("definition", Constant.ATTR_CAEP_GX);
 			partAttrs.put("value1", this.type);
 			LoadValue.createIBAValue(partAttrs, cmd_line, return_objects);
 
-			partAttrs.put("definition", Constant.ATTR_DESCRIBE);
-			partAttrs.put("value1", this.describe);
-			LoadValue.createIBAValue(partAttrs, cmd_line, return_objects);
-
-			LoadPart.beginCreateWTPart(partAttrs, cmd_line, return_objects);
+			if (this.describe != null && this.describe.length() > 0) {
+				partAttrs.put("definition", Constant.ATTR_DESCRIBE);
+				partAttrs.put("value1", this.describe);
+				LoadValue.createIBAValue(partAttrs, cmd_line, return_objects);
+			}
+			LoadValue.applySoftAttributes(LoadPart.getPart());
 		}
 	}
 

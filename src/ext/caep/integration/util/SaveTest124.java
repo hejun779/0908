@@ -35,14 +35,98 @@ import wt.util.WTException;
 import wt.util.WTPropertyVetoException;
 import wt.util.WTRuntimeException;
 
-public class SaveTest110 implements RemoteAccess {
+public class SaveTest124 implements RemoteAccess {
 
 	public static void main(String[] args) {
 		// loadBOM();
 		// createDoc();
 		RemoteMethodServer.getDefault().setUserName("demo");
 		RemoteMethodServer.getDefault().setPassword("demo");
-		docUpdate();
+		try {
+			saveIBA();
+		} catch (WTException e) {
+			e.printStackTrace();
+		} catch (WTPropertyVetoException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+	}
+
+	public static void saveIBA() throws WTException, WTPropertyVetoException {
+		if (RemoteMethodServer.ServerFlag) {
+			Hashtable cmd_line = new Hashtable();
+			Hashtable partAttrs = new Hashtable();
+			Vector return_objects = new Vector();
+			partAttrs.put("partNumber", "project001");
+			partAttrs.put("partName", "project111");
+			partAttrs.put("parentContainerPath", "/wt.inf.container.OrgContainer=ptc/wt.pdmlink.PDMLinkProduct=demo");
+			partAttrs.put("type", "component");
+			partAttrs.put("typedef", Constant.SOFTTYPE_PROJECT);
+			partAttrs.put("source", "make");
+			partAttrs.put("folder", "/Default");
+			partAttrs.put("view", "Design");
+
+			LoadPart.beginCreateWTPart(partAttrs, cmd_line, return_objects);
+			// WTPart part = LoadPart.getPart();
+			// IBAUtil iba = new IBAUtil(part);
+			// iba.setIBAValue(Constant.ATTR_CAEP_GX, "gx");
+			// iba.setIBAValue(Constant.ATTR_DESCRIBE, "描述111");
+			// PersistenceServerHelper.manager.update(part);
+			// System.out.println("getPart:" + LoadPart.getPart());
+			// System.out.println("size:" + return_objects.size());
+			// for (int i = 0; i < return_objects.size(); i++) {
+			// System.out.println("obj i " + return_objects.get(i));
+			// }
+			partAttrs.put("definition", Constant.ATTR_CAEP_GX);
+			partAttrs.put("value1", "gx");
+			// LoadValue.beginIBAContainer(partAttrs, cmd_line, return_objects);
+			LoadValue.createIBAValue(partAttrs, cmd_line, return_objects);
+			// LoadValue.applySoftAttributes(LoadPart.getPart());
+			// LoadValue.endIBAContainer(partAttrs, cmd_line, return_objects);
+
+			partAttrs.put("definition", Constant.ATTR_DESCRIBE);
+			partAttrs.put("value1", "描述111");
+			LoadValue.createIBAValue(partAttrs, cmd_line, return_objects);
+			LoadValue.applySoftAttributes(LoadPart.getPart());
+			// LoadValue.endIBAContainer();
+
+			Vector return_objects1 = new Vector();
+			Hashtable cmd_line1 = new Hashtable();
+			Hashtable partAttrs1 = new Hashtable();
+
+			partAttrs1.put("partNumber", "task0001");
+			partAttrs1.put("partName", "task");
+			partAttrs1.put("parentContainerPath", "/wt.inf.container.OrgContainer=ptc/wt.pdmlink.PDMLinkProduct=demo");
+			partAttrs1.put("type", "component");
+			partAttrs1.put("typedef", Constant.SOFTTYPE_TASK);
+			partAttrs1.put("source", "make");
+			partAttrs1.put("folder", "/Default");
+			partAttrs1.put("view", "Design");
+
+			LoadPart.beginCreateWTPart(partAttrs1, cmd_line1, return_objects1);
+
+			partAttrs1.put("definition", Constant.ATTR_DESCRIBE);
+			partAttrs1.put("value1", "taskdescribe");
+			LoadValue.createIBAValue(partAttrs1, cmd_line1, return_objects1);
+
+			Hashtable assmAttrs = new Hashtable();
+			assmAttrs.put("assemblyPartNumber", "project001");
+			assmAttrs.put("constituentPartNumber", "task0001");
+			assmAttrs.put("constituentPartQty", "1");
+			assmAttrs.put("constituentPartUnit", "ea");
+			LoadPart.addPartToAssembly(assmAttrs, cmd_line1, return_objects1);
+			LoadPart.endCreateOrUpdateWTPart(partAttrs1, cmd_line1, return_objects1);
+
+			LoadPart.endCreateOrUpdateWTPart(partAttrs, cmd_line, return_objects);
+		} else {
+			try {
+				RemoteMethodServer.getDefault().invoke("saveIBA", SaveTest124.class.getName(), null, null, null);
+			} catch (RemoteException e) {
+				e.printStackTrace();
+			} catch (InvocationTargetException e) {
+				e.printStackTrace();
+			}
+		}
 	}
 
 	public static void docUpdate() {
@@ -85,7 +169,7 @@ public class SaveTest110 implements RemoteAccess {
 			}
 		} else {
 			try {
-				RemoteMethodServer.getDefault().invoke("docUpdate", SaveTest110.class.getName(), null, null, null);
+				RemoteMethodServer.getDefault().invoke("docUpdate", SaveTest124.class.getName(), null, null, null);
 			} catch (RemoteException e) {
 				e.printStackTrace();
 			} catch (InvocationTargetException e) {
@@ -129,7 +213,7 @@ public class SaveTest110 implements RemoteAccess {
 			LoadDoc.endCreateWTDocument(docAttrs, cmd_line, return_objects);
 		} else {
 			try {
-				RemoteMethodServer.getDefault().invoke("updateDoc", SaveTest110.class.getName(), null, null, null);
+				RemoteMethodServer.getDefault().invoke("updateDoc", SaveTest124.class.getName(), null, null, null);
 			} catch (RemoteException e) {
 				e.printStackTrace();
 			} catch (InvocationTargetException e) {
@@ -167,7 +251,7 @@ public class SaveTest110 implements RemoteAccess {
 			LoadPart.endCreateOrUpdateWTPart(partAttrs, cmd_line, return_objects);
 		} else {
 			try {
-				RemoteMethodServer.getDefault().invoke("update", SaveTest110.class.getName(), null, null, null);
+				RemoteMethodServer.getDefault().invoke("update", SaveTest124.class.getName(), null, null, null);
 			} catch (RemoteException e) {
 				e.printStackTrace();
 			} catch (InvocationTargetException e) {
@@ -258,7 +342,7 @@ public class SaveTest110 implements RemoteAccess {
 			// "default", time, true, true, true, result);
 		} else {
 			try {
-				RemoteMethodServer.getDefault().invoke("createDoc", SaveTest110.class.getName(), null, null, null);
+				RemoteMethodServer.getDefault().invoke("createDoc", SaveTest124.class.getName(), null, null, null);
 			} catch (RemoteException e) {
 				e.printStackTrace();
 			} catch (InvocationTargetException e) {
@@ -306,7 +390,7 @@ public class SaveTest110 implements RemoteAccess {
 			}
 		} else {
 			try {
-				RemoteMethodServer.getDefault().invoke("save", SaveTest110.class.getName(), null, null, null);
+				RemoteMethodServer.getDefault().invoke("save", SaveTest124.class.getName(), null, null, null);
 			} catch (RemoteException e) {
 				e.printStackTrace();
 			} catch (InvocationTargetException e) {
@@ -361,7 +445,7 @@ public class SaveTest110 implements RemoteAccess {
 			LoadPart.endCreateWTPart(childAttrs, cmd_line, return_objects);
 		} else {
 			try {
-				RemoteMethodServer.getDefault().invoke("loadBOM", SaveTest110.class.getName(), null, null, null);
+				RemoteMethodServer.getDefault().invoke("loadBOM", SaveTest124.class.getName(), null, null, null);
 			} catch (RemoteException e) {
 				e.printStackTrace();
 			} catch (InvocationTargetException e) {
