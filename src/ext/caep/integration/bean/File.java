@@ -16,9 +16,6 @@ import wt.doc.LoadDoc;
 import wt.doc.WTDocument;
 import wt.iba.value.service.LoadValue;
 import wt.part.LoadPart;
-import wt.part.WTPart;
-import wt.util.WTException;
-import wt.util.WTPropertyVetoException;
 
 @XmlRootElement(name = "File")
 @XmlAccessorType(XmlAccessType.PROPERTY)
@@ -132,44 +129,26 @@ public class File {
 		this.type = type;
 	}
 
-	public WTDocument newDocument(WTPart part) {
-
-		WTDocument doc = null;
-		// 借用文档,只创建连接
-		if (this.ID != null && !this.ID.equals("")) {
-			doc = IntegrationUtil.getDocFromNumber(this.getID());
-		} else {
-			try {
-				doc = WTDocument.newWTDocument();
-				doc.setName(this.name);
-				if (this.describe != null) {
-					doc.setDescription(this.describe);
-				}
-
-				// NumberingUtil.getNumber(doc);
-			} catch (WTException e) {
-				e.printStackTrace();
-			} catch (WTPropertyVetoException e) {
-				e.printStackTrace();
-			}
-		}
-
-		return doc;
-	}
-
 	public void newDocument(String parentNumber, Object parent, String folder) throws Exception {
 		if (this.ID == null || this.ID.equals("")) {
 			String number = NumberingUtil.getNumber(parent, this);
 			this.ID = number;
 			docAttrs.put("name", this.name);
 			docAttrs.put("number", this.ID);
+			if (this.getDescribe() != null && this.getDescribe().length() > 0) {
+				docAttrs.put("description", this.getDescribe());
+			}
 			String saveIn = "/Default";
 			if (folder != null && !folder.equals("")) {
 				saveIn = saveIn + "/" + folder;
 			}
 			docAttrs.put("saveIn", saveIn);
 			docAttrs.put("type", "Document");
-			docAttrs.put("typedef", Constant.SOFTTYPE_FILE);
+			if (IntegrationUtil.isPara(parentNumber)) {
+				docAttrs.put("typedef", Constant.SOFTTYPE_IOFILE);
+			} else {
+				docAttrs.put("typedef", Constant.SOFTTYPE_FILE);
+			}
 			docAttrs.put("parentContainerPath", "/wt.inf.container.OrgContainer=ptc/wt.pdmlink.PDMLinkProduct=" + IntegrationUtil.getProperty("product"));
 			docAttrs.put("department", "DESIGN");
 			docAttrs.put("primarycontenttype", "ApplicationData");

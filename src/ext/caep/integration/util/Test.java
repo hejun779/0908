@@ -1,13 +1,15 @@
 package ext.caep.integration.util;
 
-import java.io.File;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public class Test {
 
 	public static void main(String[] args) {
-		File f = new File("d:\\1.xml");
-		System.out.println(f.getAbsolutePath());
-		System.out.println(f.getPath());
+		String ID = "P0000001";
+		Pattern pattern = Pattern.compile("[0-9]*");
+		Matcher isNum = pattern.matcher(ID.substring(1));
+		System.out.println(isNum.matches());
 
 	}
 

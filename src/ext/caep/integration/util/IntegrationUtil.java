@@ -13,6 +13,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Properties;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import com.ptc.core.meta.common.IdentifierFactory;
 import com.ptc.core.meta.common.TypeIdentifier;
@@ -27,8 +29,6 @@ import wt.fc.Persistable;
 import wt.fc.PersistenceHelper;
 import wt.fc.QueryResult;
 import wt.fc.collections.WTArrayList;
-import wt.fc.collections.WTHashSet;
-import wt.fc.collections.WTSet;
 import wt.folder.Cabinet;
 import wt.folder.CabinetReference;
 import wt.folder.Folder;
@@ -318,20 +318,20 @@ public class IntegrationUtil implements RemoteAccess {
 		return result;
 	}
 
-	public static WTSet getDescribeDoc(WTPart part) {
-		WTSet docs = new WTHashSet();
+	public static List<WTDocument> getDescribeDoc(WTPart part) {
+		List<WTDocument> result = new ArrayList<WTDocument>();
 		try {
 			QueryResult qr = WTPartHelper.service.getDescribedByWTDocuments(part);
 			WTArrayList docList = new WTArrayList(qr);
 			Iterator it = docList.persistableIterator();
 			while (it.hasNext()) {
 				WTDocument doc = (WTDocument) it.next();
-				docs.add(doc);
+				result.add(doc);
 			}
 		} catch (WTException e) {
 			e.printStackTrace();
 		}
-		return docs;
+		return result;
 	}
 
 	public static List<WTPart> getChildren(WTPart part) {
@@ -612,4 +612,313 @@ public class IntegrationUtil implements RemoteAccess {
 		IntegrationUtil.shareFilePath = shareFilePath;
 	}
 
+	public static String trim(Object obj) {
+		String result = "";
+		if (obj != null) {
+			if (obj instanceof String) {
+				result = ((String) obj).trim();
+			} else {
+				result = String.valueOf(obj);
+			}
+		}
+		return result;
+	}
+
+	public static List<WTDocument> queryFilesForProject(String projectName, String projectID, String projectType, String projectDescribe) {
+		List<WTDocument> result = new ArrayList<WTDocument>();
+
+		try {
+			QuerySpec qs = new QuerySpec();
+			int partIndex = qs.addClassList(WTPart.class, true);
+			// 搜索文件夹
+			Folder folder = IntegrationUtil.getFolder(Constant.FOLDER_PROJECT);
+			IteratedFolderedConfigSpec folder_cs = IteratedFolderedConfigSpec.newIteratedFolderedConfigSpec(folder);
+			// 搜索方案软类型
+			IdentifierFactory identifier_factory = (IdentifierFactory) ServiceProviderHelper.getService(IdentifierFactory.class, "logical");
+			TypeIdentifier tid = (TypeIdentifier) identifier_factory.get(Constant.SOFTTYPE_PROJECT);
+			SearchCondition sc = TypedUtilityServiceHelper.service.getSearchCondition(tid, true);
+			qs.appendWhere(sc, new int[] { partIndex });
+			qs.appendAnd();
+			// 搜索最新版本
+			qs.appendWhere(VersionControlHelper.getSearchCondition(WTPart.class, true));
+			if (projectID != null && projectID.length() > 0) {
+				qs.appendAnd();
+				qs.appendWhere(new SearchCondition(WTPart.class, WTPart.NUMBER, SearchCondition.LIKE, "%" + projectID.toUpperCase() + "%"));
+			}
+			if (projectName != null && projectName.length() > 0) {
+				qs.appendAnd();
+				qs.appendWhere(new SearchCondition(WTPart.class, WTPart.NAME, SearchCondition.LIKE, "%" + projectName.toUpperCase() + "%"));
+			}
+			qs = folder_cs.appendSearchCriteria(qs);
+
+			QueryResult qr = PersistenceHelper.manager.find((StatementSpec) qs);
+			while (qr.hasMoreElements()) {
+				Persistable[] ar = (Persistable[]) qr.nextElement();
+				WTPart project = (WTPart) ar[partIndex];
+				IBAUtil iba = new IBAUtil(project);
+				if (projectType.length() > 0 && !compare(projectType, iba.getIBAValue(Constant.ATTR_CAEP_GX))) {
+					continue;
+				}
+				if (projectDescribe.length() > 0 && !compare(projectDescribe, iba.getIBAValue(Constant.DESCRIBE))) {
+					continue;
+				}
+				List<WTPart> tasks = getChildren(project);
+				for (WTPart task : tasks) {
+					List<WTPart> softwares = getChildren(task);
+					for (WTPart software : softwares) {
+						List<WTPart> paras = getChildren(software);
+						for (WTPart para : paras) {
+							List<WTDocument> files = getDescribeDoc(para);
+							for (WTDocument file : files) {
+								if (!result.contains(file)) {
+									result.add(file);
+								}
+							}
+						}
+					}
+				}
+			}
+
+		} catch (QueryException e) {
+			e.printStackTrace();
+		} catch (WTPropertyVetoException e) {
+			e.printStackTrace();
+		} catch (WTException e) {
+			e.printStackTrace();
+		}
+		return result;
+	}
+
+	public static List<WTDocument> queryFilesForTask(String taskName, String taskID, String taskDescribe) {
+		List<WTDocument> result = new ArrayList<WTDocument>();
+		try {
+			QuerySpec qs = new QuerySpec();
+			int partIndex = qs.addClassList(WTPart.class, true);
+			// 搜索文件夹
+			Folder folder = IntegrationUtil.getFolder(Constant.FOLDER_PROJECT);
+			IteratedFolderedConfigSpec folder_cs = IteratedFolderedConfigSpec.newIteratedFolderedConfigSpec(folder);
+			// 搜索方案软类型
+			IdentifierFactory identifier_factory = (IdentifierFactory) ServiceProviderHelper.getService(IdentifierFactory.class, "logical");
+			TypeIdentifier tid = (TypeIdentifier) identifier_factory.get(Constant.SOFTTYPE_TASK);
+			SearchCondition sc = TypedUtilityServiceHelper.service.getSearchCondition(tid, true);
+			qs.appendWhere(sc, new int[] { partIndex });
+			qs.appendAnd();
+			// 搜索最新版本
+			qs.appendWhere(VersionControlHelper.getSearchCondition(WTPart.class, true));
+			if (taskID != null && taskID.length() > 0) {
+				qs.appendAnd();
+				qs.appendWhere(new SearchCondition(WTPart.class, WTPart.NUMBER, SearchCondition.LIKE, "%" + taskID.toUpperCase() + "%"));
+			}
+			if (taskName != null && taskName.length() > 0) {
+				qs.appendAnd();
+				qs.appendWhere(new SearchCondition(WTPart.class, WTPart.NAME, SearchCondition.LIKE, "%" + taskName.toUpperCase() + "%"));
+			}
+			qs = folder_cs.appendSearchCriteria(qs);
+			QueryResult qr = PersistenceHelper.manager.find((StatementSpec) qs);
+			while (qr.hasMoreElements()) {
+				Persistable[] ar = (Persistable[]) qr.nextElement();
+				WTPart task = (WTPart) ar[partIndex];
+				IBAUtil iba = new IBAUtil(task);
+				if (taskDescribe.length() > 0 && !compare(taskDescribe, iba.getIBAValue(Constant.ATTR_DESCRIBE))) {
+					continue;
+				}
+				List<WTPart> softwares = getChildren(task);
+				for (WTPart software : softwares) {
+					List<WTPart> paras = getChildren(software);
+					for (WTPart para : paras) {
+						List<WTDocument> files = getDescribeDoc(para);
+						for (WTDocument file : files) {
+							if (!result.contains(file)) {
+								result.add(file);
+							}
+						}
+					}
+				}
+			}
+
+		} catch (QueryException e) {
+			e.printStackTrace();
+		} catch (WTPropertyVetoException e) {
+			e.printStackTrace();
+		} catch (WTException e) {
+			e.printStackTrace();
+		}
+		return result;
+	}
+
+	public static List<WTDocument> queryFilesForSoftware(String softwareName, String softwareID) {
+		List<WTDocument> result = new ArrayList<WTDocument>();
+		try {
+			QuerySpec qs = new QuerySpec();
+			int partIndex = qs.addClassList(WTPart.class, true);
+			// 搜索文件夹
+			Folder folder = IntegrationUtil.getFolder(Constant.FOLDER_PROJECT);
+			IteratedFolderedConfigSpec folder_cs = IteratedFolderedConfigSpec.newIteratedFolderedConfigSpec(folder);
+			// 搜索方案软类型
+			IdentifierFactory identifier_factory = (IdentifierFactory) ServiceProviderHelper.getService(IdentifierFactory.class, "logical");
+			TypeIdentifier tid = (TypeIdentifier) identifier_factory.get(Constant.SOFTTYPE_SOFTWARE);
+			SearchCondition sc = TypedUtilityServiceHelper.service.getSearchCondition(tid, true);
+			qs.appendWhere(sc, new int[] { partIndex });
+			qs.appendAnd();
+			// 搜索最新版本
+			qs.appendWhere(VersionControlHelper.getSearchCondition(WTPart.class, true));
+			if (softwareID != null && softwareID.length() > 0) {
+				qs.appendAnd();
+				qs.appendWhere(new SearchCondition(WTPart.class, WTPart.NUMBER, SearchCondition.LIKE, "%" + softwareID.toUpperCase() + "%"));
+			}
+			if (softwareName != null && softwareName.length() > 0) {
+				qs.appendAnd();
+				qs.appendWhere(new SearchCondition(WTPart.class, WTPart.NAME, SearchCondition.LIKE, "%" + softwareName.toUpperCase() + "%"));
+			}
+			qs = folder_cs.appendSearchCriteria(qs);
+			QueryResult qr = PersistenceHelper.manager.find((StatementSpec) qs);
+			while (qr.hasMoreElements()) {
+				Persistable[] ar = (Persistable[]) qr.nextElement();
+				WTPart software = (WTPart) ar[partIndex];
+				List<WTPart> paras = getChildren(software);
+				for (WTPart para : paras) {
+					List<WTDocument> files = getDescribeDoc(para);
+					for (WTDocument file : files) {
+						if (!result.contains(file)) {
+							result.add(file);
+						}
+					}
+				}
+			}
+
+		} catch (QueryException e) {
+			e.printStackTrace();
+		} catch (WTPropertyVetoException e) {
+			e.printStackTrace();
+		} catch (WTException e) {
+			e.printStackTrace();
+		}
+		return result;
+	}
+
+	public static List<WTDocument> queryFilesForPara(String paraName, String paraID) {
+		List<WTDocument> result = new ArrayList<WTDocument>();
+		try {
+			QuerySpec qs = new QuerySpec();
+			int partIndex = qs.addClassList(WTPart.class, true);
+			// 搜索文件夹
+			Folder folder = IntegrationUtil.getFolder(Constant.FOLDER_PROJECT);
+			IteratedFolderedConfigSpec folder_cs = IteratedFolderedConfigSpec.newIteratedFolderedConfigSpec(folder);
+			// 搜索方案软类型
+			IdentifierFactory identifier_factory = (IdentifierFactory) ServiceProviderHelper.getService(IdentifierFactory.class, "logical");
+			TypeIdentifier tid = (TypeIdentifier) identifier_factory.get(Constant.SOFTTYPE_PARA);
+			SearchCondition sc = TypedUtilityServiceHelper.service.getSearchCondition(tid, true);
+			qs.appendWhere(sc, new int[] { partIndex });
+			qs.appendAnd();
+			// 搜索最新版本
+			qs.appendWhere(VersionControlHelper.getSearchCondition(WTPart.class, true));
+			if (paraID != null && paraID.length() > 0) {
+				qs.appendAnd();
+				qs.appendWhere(new SearchCondition(WTPart.class, WTPart.NUMBER, SearchCondition.LIKE, "%" + paraID.toUpperCase() + "%"));
+			}
+			if (paraName != null && paraName.length() > 0) {
+				qs.appendAnd();
+				qs.appendWhere(new SearchCondition(WTPart.class, WTPart.NAME, SearchCondition.LIKE, "%" + paraName.toUpperCase() + "%"));
+			}
+			qs = folder_cs.appendSearchCriteria(qs);
+			QueryResult qr = PersistenceHelper.manager.find((StatementSpec) qs);
+			while (qr.hasMoreElements()) {
+				Persistable[] ar = (Persistable[]) qr.nextElement();
+				WTPart para = (WTPart) ar[partIndex];
+				List<WTDocument> files = getDescribeDoc(para);
+				for (WTDocument file : files) {
+					if (!result.contains(file)) {
+						result.add(file);
+					}
+				}
+			}
+		} catch (QueryException e) {
+			e.printStackTrace();
+		} catch (WTPropertyVetoException e) {
+			e.printStackTrace();
+		} catch (WTException e) {
+			e.printStackTrace();
+		}
+		return result;
+	}
+
+	public static List<WTDocument> queryFiles(String fileName, String fileID, String fileType, String fileDescribe, String fileAuthor, String fileOrgan) {
+		List<WTDocument> result = new ArrayList<WTDocument>();
+		try {
+			QuerySpec qs = new QuerySpec();
+			int partIndex = qs.addClassList(WTDocument.class, true);
+			// 搜索方案软类型
+			IdentifierFactory identifier_factory = (IdentifierFactory) ServiceProviderHelper.getService(IdentifierFactory.class, "logical");
+			TypeIdentifier tid = (TypeIdentifier) identifier_factory.get(Constant.SOFTTYPE_IOFILE);
+			SearchCondition sc = TypedUtilityServiceHelper.service.getSearchCondition(tid, true);
+			qs.appendWhere(sc, new int[] { partIndex });
+			qs.appendAnd();
+			// 搜索最新版本
+			qs.appendWhere(VersionControlHelper.getSearchCondition(WTDocument.class, true));
+			if (fileID != null && fileID.length() > 0) {
+				qs.appendAnd();
+				qs.appendWhere(new SearchCondition(WTDocument.class, WTDocument.NUMBER, SearchCondition.LIKE, "%" + fileID.toUpperCase() + "%"));
+			}
+			if (fileName != null && fileName.length() > 0) {
+				qs.appendAnd();
+				qs.appendWhere(new SearchCondition(WTDocument.class, WTDocument.NAME, SearchCondition.LIKE, "%" + fileName.toUpperCase() + "%"));
+			}
+			QueryResult qr = PersistenceHelper.manager.find((StatementSpec) qs);
+			while (qr.hasMoreElements()) {
+				Persistable[] ar = (Persistable[]) qr.nextElement();
+				WTDocument file = (WTDocument) ar[0];
+				IBAUtil iba = new IBAUtil(file);
+				if (fileType.length() > 0 && !compare(fileType, iba.getIBAValue(Constant.ATTR_CAEP_LXBS))) {
+					continue;
+				}
+				if (fileDescribe.length() > 0 && !compare(fileDescribe, file.getDescription())) {
+					continue;
+				}
+				if (fileAuthor.length() > 0 && !compare(fileAuthor, iba.getIBAValue(Constant.ATTR_CAEP_AUTHOR))) {
+					continue;
+				}
+				if (fileOrgan.length() > 0 && !compare(fileOrgan, iba.getIBAValue(Constant.ATTR_CAEP_ORGAN))) {
+					continue;
+				}
+				if (!result.contains(file)) {
+					result.add(file);
+				}
+			}
+		} catch (QueryException e) {
+			e.printStackTrace();
+		} catch (WTException e) {
+			e.printStackTrace();
+		}
+		return result;
+	}
+
+	public static boolean compare(String str1, String str2) {
+		str1 = trim(str1);
+		str2 = trim(str2);
+		boolean result = false;
+		if (str1.equals(str2)) {
+			result = true;
+		}
+		return result;
+	}
+
+	/**
+	 * 根据编号规则判断是不是计算参数的ID 例:p000001
+	 * 
+	 * @param ID
+	 * @return
+	 */
+	public static boolean isPara(String ID) {
+		boolean result = false;
+		if (ID != null) {
+			ID = ID.toUpperCase();
+			if (ID.startsWith("P") && ID.length() == 7) {
+				ID = ID.substring(1);
+				Pattern pattern = Pattern.compile("[0-9]*");
+				Matcher isNum = pattern.matcher(ID);
+				result = isNum.matches();
+			}
+		}
+		return result;
+	}
 }

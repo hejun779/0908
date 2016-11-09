@@ -3,7 +3,6 @@ package ext.caep.integration.process;
 import java.io.FileOutputStream;
 import java.io.InputStream;
 import java.util.ArrayList;
-import java.util.Iterator;
 import java.util.List;
 
 import ext.caep.integration.bean.File;
@@ -20,9 +19,7 @@ import wt.content.ContentRoleType;
 import wt.content.ContentServerHelper;
 import wt.doc.WTDocument;
 import wt.fc.QueryResult;
-import wt.fc.collections.WTSet;
 import wt.part.WTPart;
-import wt.util.WTException;
 
 /**
  * 可以从任意节点(Global,方案,计算任务,专有软件,计算参数,输入输出文件,附属文件)开始相关文档,如果子节点有内容,则只下载子节点的相关文档,
@@ -235,22 +232,14 @@ public class Download {
 	}
 
 	private static List<File> downloadAllFileForPart(WTPart part) {
-		List<File> files = null;
-		WTSet docs = IntegrationUtil.getDescribeDoc(part);
+		List<File> files = new ArrayList<File>();
+		List<WTDocument> docs = IntegrationUtil.getDescribeDoc(part);
 		if (docs != null && !docs.isEmpty()) {
-			files = new ArrayList<File>();
-			Iterator itDocs;
-			try {
-				itDocs = docs.persistableIterator();
-				while (itDocs.hasNext()) {
-					WTDocument doc = (WTDocument) itDocs.next();
-					String path = downloadFile(doc);
-					File file = new File(doc);
-					file.setPath(path);
-					files.add(file);
-				}
-			} catch (WTException e) {
-				e.printStackTrace();
+			for (WTDocument doc : docs) {
+				String path = downloadFile(doc);
+				File file = new File(doc);
+				file.setPath(path);
+				files.add(file);
 			}
 		}
 		return files;

@@ -1,7 +1,6 @@
 package ext.caep.integration.process;
 
 import java.util.ArrayList;
-import java.util.Iterator;
 import java.util.List;
 
 import ext.caep.integration.bean.File;
@@ -13,9 +12,7 @@ import ext.caep.integration.bean.Software;
 import ext.caep.integration.bean.Task;
 import ext.caep.integration.util.IntegrationUtil;
 import wt.doc.WTDocument;
-import wt.fc.collections.WTSet;
 import wt.part.WTPart;
-import wt.util.WTException;
 
 public class Synchronize extends DataOperation {
 	public static void process(Object root) {
@@ -203,19 +200,11 @@ public class Synchronize extends DataOperation {
 	 */
 	private static List<File> syncFiles(WTPart part) {
 		List<File> result = new ArrayList<File>();
-		WTSet files = IntegrationUtil.getDescribeDoc(part);
-		Iterator filesIt;
-		try {
-			filesIt = files.persistableIterator();
-			while (filesIt.hasNext()) {
-				WTDocument doc = (WTDocument) filesIt.next();
-				File file = new File(doc);
-				result.add(file);
-			}
-		} catch (WTException e) {
-			e.printStackTrace();
+		List<WTDocument> docs = IntegrationUtil.getDescribeDoc(part);
+		for (WTDocument doc : docs) {
+			File file = new File(doc);
+			result.add(file);
 		}
 		return result;
 	}
-
 }

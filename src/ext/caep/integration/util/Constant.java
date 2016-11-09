@@ -37,7 +37,8 @@ public class Constant {
 	public static final String SOFTTYPE_TASK = "lfrc.caep.Task";
 	public static final String SOFTTYPE_SOFTWARE = "lfrc.caep.Software";
 	public static final String SOFTTYPE_PARA = "lfrc.caep.Para";
-	public static final String SOFTTYPE_FILE = "lfrc.caep.File";
+	public static final String SOFTTYPE_FILE = "lfrc.caep.File";// 附属文档
+	public static final String SOFTTYPE_IOFILE = "lfrc.caep.IOFile";// 输入输出文档
 
 	// 软属性
 	public static final String ATTR_CAEP_LXBS = "caep_lxbs";// 文档软属性类型标识
