@@ -1,16 +1,18 @@
 package ext.caep.integration.util;
 
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 
 public class Test {
 
 	public static void main(String[] args) {
-		String ID = "P0000001";
-		Pattern pattern = Pattern.compile("[0-9]*");
-		Matcher isNum = pattern.matcher(ID.substring(1));
-		System.out.println(isNum.matches());
-
+		try {
+			MessageDigest messageDigest = MessageDigest.getInstance("SHA-256");
+			System.out.println(messageDigest.getAlgorithm());
+			System.out.println(messageDigest.digest("tom".getBytes()).toString());
+		} catch (NoSuchAlgorithmException e) {
+			e.printStackTrace();
+		}
 	}
 
 }

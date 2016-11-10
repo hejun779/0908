@@ -108,14 +108,14 @@ public class NumberingUtil {
 	private static String generateSoftwareNumber() throws Exception {
 		String value = null;
 		long number = getSequenceNumber(PROP_SOFTWARE);
-		value = "t" + String.format("%06d", (int) number);
+		value = "T" + String.format("%06d", (int) number);
 		return value;
 	}
 
 	private static String generateParamNumber() throws Exception {
 		String value = null;
 		long number = getSequenceNumber(PROP_PARAM);
-		value = "p" + String.format("%06d", (int) number);
+		value = "P" + String.format("%06d", (int) number);
 		return value;
 	}
 

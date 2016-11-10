@@ -151,4 +151,27 @@ public class Project {
 			LoadPart.endCreateWTPart(partAttrs, cmd_line, return_objects);
 		}
 	}
+
+	public void removeTask(String taskID) {
+		if (taskID != null && taskID.length() > 0 && tasks != null && !tasks.isEmpty()) {
+			for (Task task : tasks) {
+				if (taskID.equalsIgnoreCase(task.getID())) {
+					int index = tasks.indexOf(task);
+					tasks.set(index, null);
+					break;
+				}
+			}
+		}
+	}
+
+	public void removeFile(String fileID) {
+		if (fileID != null && fileID.length() > 0 && files != null && files.getFiles() != null && !files.getFiles().isEmpty()) {
+			for (File file : files.getFiles()) {
+				if (fileID.equalsIgnoreCase(file.getID())) {
+					int index = files.getFiles().indexOf(file);
+					files.getFiles().set(index, null);
+				}
+			}
+		}
+	}
 }

@@ -78,7 +78,7 @@ public class IntegrationWebService implements RemoteAccess {
 			if (!rootState.equals(Constant.STATE_DELETE)) {
 				File outputFile = IntegrationUtil.createShareFile();
 				data = outputFile.getPath();// TODO
-				String parent = "\\\\" + IntegrationUtil.getShareFileHost() + File.separator + IntegrationUtil.getShareFilePath() + File.separator;
+				String parent = IntegrationUtil.getSharedFilePath(null) + File.separator;
 				if (data.startsWith(parent)) {
 					data = data.substring(parent.length());
 				}
@@ -116,12 +116,16 @@ public class IntegrationWebService implements RemoteAccess {
 		}
 		// 删除:如果state表示删除,将删除此节点,忽略子节点的状态,并根据角色依次删除所有子节点
 		else if (state.equals(Constant.STATE_DELETE)) {
-			new Delete().process(root);
+			new Delete().process(parameters, root);
 		}
 		// 编辑:如果state表示更新,将更新此节点,且只更新此节点,子节点将根据自身的state状态进行处理
 		else if (state.equals(Constant.STATE_UPDATE)) {
-			Update.process(root);
-			childrenDelegate(root);
+			if (!(root instanceof Global)) {
+				Update.process(root);
+			}
+			if (!(root instanceof ext.caep.integration.bean.File)) {
+				childrenDelegate(root);
+			}
 		}
 		// 同步:如果state表示同步,则同步包括此节点和所有子节点,忽略所有子节点的state状态
 		else if (state.equals(Constant.STATE_SYNCHRONIZE)) {
@@ -131,7 +135,9 @@ public class IntegrationWebService implements RemoteAccess {
 		else if (state.equals(Constant.STATE_DOWNLOAD)) {
 			Download.process(root);
 		} else if (state.equals(Constant.STATE_NOCHANGE)) {
-			childrenDelegate(root);
+			if (!(root instanceof ext.caep.integration.bean.File)) {
+				childrenDelegate(root);
+			}
 		}
 	}
 
@@ -146,6 +152,7 @@ public class IntegrationWebService implements RemoteAccess {
 			Global global = (Global) root;
 			List<Project> projects = global.getProjects();
 			if (projects != null && !projects.isEmpty()) {
+				parameters.put("currentGlobal", global);
 				for (Project project : projects) {
 					processDelegate(project, project.getState(), project.getID());
 				}

@@ -113,4 +113,16 @@ public class Para {
 		}
 
 	}
+
+	public void removeFile(String fileID) {
+		if (fileID != null && fileID.length() > 0 && files != null && !files.isEmpty()) {
+			for (File file : files) {
+				if (fileID.equalsIgnoreCase(file.getID())) {
+					int index = files.indexOf(file);
+					files.set(index, null);
+					break;
+				}
+			}
+		}
+	}
 }

@@ -57,4 +57,15 @@ public class Global {
 		ID = iD;
 	}
 
+	public void removeProject(String projectID) {
+		if (projectID != null && projectID.length() > 0 && projects != null && !projects.isEmpty()) {
+			for (Project project : projects) {
+				if (projectID.equalsIgnoreCase(project.getID())) {
+					int index = projects.indexOf(project);
+					projects.set(index, null);
+					break;
+				}
+			}
+		}
+	}
 }

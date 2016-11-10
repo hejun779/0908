@@ -1,12 +1,11 @@
 package ext.caep.integration.process;
 
-import java.io.FileInputStream;
-import java.io.InputStream;
 import java.util.Hashtable;
 import java.util.Vector;
 
+import org.apache.commons.lang.StringUtils;
+
 import ext.caep.integration.bean.File;
-import ext.caep.integration.bean.Global;
 import ext.caep.integration.bean.Para;
 import ext.caep.integration.bean.Project;
 import ext.caep.integration.bean.Software;
@@ -14,25 +13,16 @@ import ext.caep.integration.bean.Task;
 import ext.caep.integration.util.Constant;
 import ext.caep.integration.util.IBAUtil;
 import ext.caep.integration.util.IntegrationUtil;
-import wt.content.ApplicationData;
-import wt.content.ContentHelper;
 import wt.content.ContentRoleType;
-import wt.content.ContentServerHelper;
 import wt.doc.WTDocument;
-import wt.fc.QueryResult;
 import wt.iba.value.service.LoadValue;
 import wt.part.LoadPart;
 import wt.part.WTPart;
 import wt.pom.Transaction;
-import wt.util.WTException;
-import wt.util.WTPropertyVetoException;
-import wt.util.WTRuntimeException;
 
 public class Update {
-	public static Object process(Object root) {
-		if (root instanceof Global) {
-			updateGlobal((Global) root);
-		} else if (root instanceof Project) {
+	public static Object process(Object root) throws Exception {
+		if (root instanceof Project) {
 			updateProject((Project) root);
 		} else if (root instanceof Task) {
 			updateTask((Task) root);
@@ -44,10 +34,6 @@ public class Update {
 			updateFile((File) root);
 		}
 		return root;
-	}
-
-	private static void updateGlobal(Global root) {
-		// Do nothing
 	}
 
 	private static void updateProject(Project project) {
@@ -64,7 +50,7 @@ public class Update {
 			partAttrs.put("parentContainerPath", "/wt.inf.container.OrgContainer=ptc/wt.pdmlink.PDMLinkProduct=" + IntegrationUtil.getProperty("product"));
 			partAttrs.put("type", "component");
 			partAttrs.put("source", "make");
-			partAttrs.put("folder", "/Default");
+			partAttrs.put("folder", "/Default/" + Constant.FOLDER_PROJECT);
 
 			LoadPart.beginCreateOrUpdateWTPart(partAttrs, cmd_line, return_objects);
 
@@ -95,7 +81,7 @@ public class Update {
 			partAttrs.put("parentContainerPath", "/wt.inf.container.OrgContainer=ptc/wt.pdmlink.PDMLinkProduct=" + IntegrationUtil.getProperty("product"));
 			partAttrs.put("type", "component");
 			partAttrs.put("source", "make");
-			partAttrs.put("folder", "/Default");
+			partAttrs.put("folder", "/Default/" + Constant.FOLDER_PROJECT);
 
 			LoadPart.beginCreateOrUpdateWTPart(partAttrs, cmd_line, return_objects);
 
@@ -128,7 +114,7 @@ public class Update {
 		}
 	}
 
-	private static void updateFile(File file) {
+	private static void updateFile(File file) throws Exception {
 		WTDocument doc = IntegrationUtil.getDocFromNumber(file.getID());
 		if (doc != null) {
 			if (!doc.getName().equals(file.getName())) {
@@ -140,34 +126,23 @@ public class Update {
 				trx.start();
 				doc = (WTDocument) IntegrationUtil.checkout(doc);
 				doc.setDescription(file.getDescribe() == null ? "" : file.getDescribe());
-				doc = (WTDocument) IBAUtil.updateIBAValue(doc, Constant.ATTR_CAEP_LXBS, file.getType() == null ? "" : file.getType());
-				doc = (WTDocument) IBAUtil.updateIBAValue(doc, Constant.ATTR_CAEP_ORGAN, file.getOrgan() == null ? "" : file.getOrgan());
-				doc = (WTDocument) IBAUtil.updateIBAValue(doc, Constant.ATTR_CAEP_AUTHOR, file.getAuthor() == null ? "" : file.getAuthor());
+				doc = (WTDocument) IBAUtil.updateIBAValue(doc, Constant.ATTR_CAEP_LXBS, StringUtils.trimToEmpty(file.getType()));
+				doc = (WTDocument) IBAUtil.updateIBAValue(doc, Constant.ATTR_CAEP_ORGAN, StringUtils.trimToEmpty(file.getOrgan()));
+				doc = (WTDocument) IBAUtil.updateIBAValue(doc, Constant.ATTR_CAEP_AUTHOR, StringUtils.trimToEmpty(file.getAuthor()));
 				if (file.getPath() != null && !file.getPath().equals("")) {
-					QueryResult primary = ContentHelper.service.getContentsByRole(doc, ContentRoleType.PRIMARY);
-					if (primary.hasMoreElements()) {
-						ApplicationData appData = (ApplicationData) primary.nextElement();
-						appData.setFileName(file.getName());
-						appData.setUploadedFromPath(file.getPath());
-						InputStream is = new FileInputStream(file.getPath());
-						ContentServerHelper.service.updateContent(doc, appData, is);
-					}
+					String filePath = IntegrationUtil.getSharedFilePath(file.getPath());
+					IntegrationUtil.uploadContent(doc, filePath, ContentRoleType.PRIMARY);
 				}
 				IntegrationUtil.checkin(doc);
+				file.setPath("");
+				file.setState("");
 				trx.commit();
 				trx = null;
-			} catch (WTRuntimeException e) {
-				e.printStackTrace();
-			} catch (WTException e) {
-				e.printStackTrace();
-			} catch (WTPropertyVetoException e) {
-				e.printStackTrace();
 			} catch (Exception e) {
-				e.printStackTrace();
-			} finally {
 				if (trx != null) {
 					trx.rollback();
 				}
+				throw new Exception(e.getMessage());
 			}
 		}
 	}

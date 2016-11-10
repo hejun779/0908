@@ -2,6 +2,7 @@ package ext.caep.integration.util;
 
 import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -21,6 +22,13 @@ import com.ptc.core.meta.common.TypeIdentifier;
 import com.ptc.core.meta.common.impl.TypeIdentifierUtilityHelper;
 import com.ptc.windchill.enterprise.team.server.TeamCCHelper;
 
+import wt.content.ApplicationData;
+import wt.content.ContentHelper;
+import wt.content.ContentHolder;
+import wt.content.ContentItem;
+import wt.content.ContentRoleType;
+import wt.content.ContentServerHelper;
+import wt.content.FormatContentHolder;
 import wt.doc.WTDocument;
 import wt.doc.WTDocumentMaster;
 import wt.doc.WTDocumentMasterIdentity;
@@ -55,7 +63,6 @@ import wt.team.WTRoleHolder2;
 import wt.type.TypedUtilityServiceHelper;
 import wt.util.WTException;
 import wt.util.WTPropertyVetoException;
-import wt.vc.Mastered;
 import wt.vc.VersionControlHelper;
 import wt.vc.config.IteratedFolderedConfigSpec;
 import wt.vc.wip.CheckoutLink;
@@ -84,13 +91,12 @@ public class IntegrationUtil implements RemoteAccess {
 			shareFilePath = prop.getProperty("shareFilePath");
 			shareFileHostUser = prop.getProperty("shareFileHostUser");
 			shareFileHostPassword = prop.getProperty("shareFileHostPassword");
+			login(shareFileHost, shareFileHostUser, shareFileHostPassword);
 		} catch (IOException e) {
 			e.printStackTrace();
+		} catch (Exception e) {
+			e.printStackTrace();
 		}
-	}
-
-	public static void main(String[] args) {
-		// getFolder("方案任务结构树");
 	}
 
 	public static String getProperty(String name) {
@@ -145,15 +151,25 @@ public class IntegrationUtil implements RemoteAccess {
 	}
 
 	public static File getSharedFile(String sharedFileName) throws Exception {
-		login(shareFileHost, shareFileHostUser, shareFileHostPassword);
 		File file = null;
-		file = new File("\\\\" + shareFileHost + "\\" + shareFilePath + "\\" + sharedFileName);
-		System.out.println(file.getName());
+		String filePath = getSharedFilePath(sharedFileName);
+		if (filePath != null && filePath.length() > 0) {
+			file = new File(filePath);
+		}
 		return file;
 	}
 
+	public static String getSharedFilePath(String sharedFileName) throws Exception {
+		String filePath = null;
+		if (sharedFileName != null && sharedFileName.length() > 0) {
+			filePath = "\\\\" + shareFileHost + "\\" + shareFilePath + "\\" + sharedFileName;
+		} else {
+			filePath = "\\\\" + shareFileHost + "\\" + shareFilePath;
+		}
+		return filePath;
+	}
+
 	public static File createShareFile() throws Exception {
-		login(shareFileHost, shareFileHostUser, shareFileHostPassword);
 		String userName = SessionHelper.manager.getPrincipal().getName();
 		File path = new File("\\\\" + shareFileHost + "\\" + shareFilePath + "\\" + userName);
 		path.mkdirs();
@@ -163,7 +179,6 @@ public class IntegrationUtil implements RemoteAccess {
 	}
 
 	public static File createShareFile(String fileName) throws Exception {
-		login(shareFileHost, shareFileHostUser, shareFileHostPassword);
 		String userName = SessionHelper.manager.getPrincipal().getName();
 		File path = new File("\\\\" + shareFileHost + "\\" + shareFilePath + "\\" + userName);
 		path.mkdirs();
@@ -373,15 +388,14 @@ public class IntegrationUtil implements RemoteAccess {
 
 	public static WTDocument getDocFromNumber(String number) {
 		WTDocument doc = null;
-		QuerySpec qs;
 		try {
-			qs = new QuerySpec(WTDocument.class);
-			SearchCondition sc = new SearchCondition(WTDocument.class, WTDocument.NUMBER, SearchCondition.EQUAL, number.toUpperCase());
+			QuerySpec qs = new QuerySpec(WTDocumentMaster.class);
+			SearchCondition sc = new SearchCondition(WTDocumentMaster.class, WTDocumentMaster.NUMBER, SearchCondition.EQUAL, number.toUpperCase());
 			qs.appendWhere(sc);
 			QueryResult qr = PersistenceHelper.manager.find(qs);
 			if (qr.hasMoreElements()) {
-				doc = (WTDocument) qr.nextElement();
-				QueryResult all = VersionControlHelper.service.allVersionsOf((Mastered) doc);
+				WTDocumentMaster master = (WTDocumentMaster) qr.nextElement();
+				QueryResult all = VersionControlHelper.service.allVersionsOf(master);
 				if (all.hasMoreElements()) {
 					doc = (WTDocument) all.nextElement();
 					return doc;
@@ -473,6 +487,16 @@ public class IntegrationUtil implements RemoteAccess {
 		boolean isOwn = false;
 		try {
 			isOwn = part.getCreator().getName().equalsIgnoreCase(SessionHelper.getPrincipal().getName());
+		} catch (WTException e) {
+			e.printStackTrace();
+		}
+		return isOwn;
+	}
+
+	public static boolean isOwn(WTDocument doc) {
+		boolean isOwn = false;
+		try {
+			isOwn = doc.getCreator().getName().equalsIgnoreCase(SessionHelper.getPrincipal().getName());
 		} catch (WTException e) {
 			e.printStackTrace();
 		}
@@ -596,22 +620,6 @@ public class IntegrationUtil implements RemoteAccess {
 		}
 	}
 
-	public static String getShareFileHost() {
-		return shareFileHost;
-	}
-
-	public static void setShareFileHost(String shareFileHost) {
-		IntegrationUtil.shareFileHost = shareFileHost;
-	}
-
-	public static String getShareFilePath() {
-		return shareFilePath;
-	}
-
-	public static void setShareFilePath(String shareFilePath) {
-		IntegrationUtil.shareFilePath = shareFilePath;
-	}
-
 	public static String trim(Object obj) {
 		String result = "";
 		if (obj != null) {
@@ -620,6 +628,14 @@ public class IntegrationUtil implements RemoteAccess {
 			} else {
 				result = String.valueOf(obj);
 			}
+		}
+		return result;
+	}
+
+	public static String trimQuery(Object obj) {
+		String result = trim(obj);
+		if (result.contains("*")) {
+			result = result.replaceAll("[*]", "");
 		}
 		return result;
 	}
@@ -647,7 +663,7 @@ public class IntegrationUtil implements RemoteAccess {
 			}
 			if (projectName != null && projectName.length() > 0) {
 				qs.appendAnd();
-				qs.appendWhere(new SearchCondition(WTPart.class, WTPart.NAME, SearchCondition.LIKE, "%" + projectName.toUpperCase() + "%"));
+				qs.appendWhere(new SearchCondition(WTPart.class, WTPart.NAME, SearchCondition.LIKE, "%" + projectName + "%"));
 			}
 			qs = folder_cs.appendSearchCriteria(qs);
 
@@ -711,7 +727,7 @@ public class IntegrationUtil implements RemoteAccess {
 			}
 			if (taskName != null && taskName.length() > 0) {
 				qs.appendAnd();
-				qs.appendWhere(new SearchCondition(WTPart.class, WTPart.NAME, SearchCondition.LIKE, "%" + taskName.toUpperCase() + "%"));
+				qs.appendWhere(new SearchCondition(WTPart.class, WTPart.NAME, SearchCondition.LIKE, "%" + taskName + "%"));
 			}
 			qs = folder_cs.appendSearchCriteria(qs);
 			QueryResult qr = PersistenceHelper.manager.find((StatementSpec) qs);
@@ -768,7 +784,7 @@ public class IntegrationUtil implements RemoteAccess {
 			}
 			if (softwareName != null && softwareName.length() > 0) {
 				qs.appendAnd();
-				qs.appendWhere(new SearchCondition(WTPart.class, WTPart.NAME, SearchCondition.LIKE, "%" + softwareName.toUpperCase() + "%"));
+				qs.appendWhere(new SearchCondition(WTPart.class, WTPart.NAME, SearchCondition.LIKE, "%" + softwareName + "%"));
 			}
 			qs = folder_cs.appendSearchCriteria(qs);
 			QueryResult qr = PersistenceHelper.manager.find((StatementSpec) qs);
@@ -818,7 +834,7 @@ public class IntegrationUtil implements RemoteAccess {
 			}
 			if (paraName != null && paraName.length() > 0) {
 				qs.appendAnd();
-				qs.appendWhere(new SearchCondition(WTPart.class, WTPart.NAME, SearchCondition.LIKE, "%" + paraName.toUpperCase() + "%"));
+				qs.appendWhere(new SearchCondition(WTPart.class, WTPart.NAME, SearchCondition.LIKE, "%" + paraName + "%"));
 			}
 			qs = folder_cs.appendSearchCriteria(qs);
 			QueryResult qr = PersistenceHelper.manager.find((StatementSpec) qs);
@@ -861,7 +877,7 @@ public class IntegrationUtil implements RemoteAccess {
 			}
 			if (fileName != null && fileName.length() > 0) {
 				qs.appendAnd();
-				qs.appendWhere(new SearchCondition(WTDocument.class, WTDocument.NAME, SearchCondition.LIKE, "%" + fileName.toUpperCase() + "%"));
+				qs.appendWhere(new SearchCondition(WTDocument.class, WTDocument.NAME, SearchCondition.LIKE, "%" + fileName + "%"));
 			}
 			QueryResult qr = PersistenceHelper.manager.find((StatementSpec) qs);
 			while (qr.hasMoreElements()) {
@@ -893,10 +909,10 @@ public class IntegrationUtil implements RemoteAccess {
 	}
 
 	public static boolean compare(String str1, String str2) {
-		str1 = trim(str1);
-		str2 = trim(str2);
+		str1 = trim(str1).toUpperCase();
+		str2 = trim(str2).toUpperCase();
 		boolean result = false;
-		if (str1.equals(str2)) {
+		if (str2.contains(str1)) {
 			result = true;
 		}
 		return result;
@@ -917,6 +933,58 @@ public class IntegrationUtil implements RemoteAccess {
 				Pattern pattern = Pattern.compile("[0-9]*");
 				Matcher isNum = pattern.matcher(ID);
 				result = isNum.matches();
+			}
+		}
+		return result;
+	}
+
+	public static void uploadContent(ContentHolder ctHolder, String filePath, ContentRoleType contentType) throws Exception {
+		ApplicationData app_data = ApplicationData.newApplicationData(ctHolder);
+		FileInputStream fis = null;
+		try {
+			File file = new File(filePath);
+			fis = new FileInputStream(file);
+			app_data.setFileName(ContentServerHelper.getFileName(filePath));
+			app_data.setUploadedFromPath(filePath);
+			app_data.setRole(contentType);
+			app_data.setFileSize(file.length());
+			if ((ctHolder != null) && ((ctHolder instanceof FormatContentHolder)) && (ContentRoleType.PRIMARY.equals(contentType))) {
+				ctHolder = ContentServerHelper.service.updateHolderFormat((FormatContentHolder) ctHolder);
+				ContentItem primary = ContentHelper.getPrimary((FormatContentHolder) ctHolder);
+				if (primary != null) {
+					ContentServerHelper.service.deleteContent(ctHolder, primary);
+				}
+			}
+			app_data = ContentServerHelper.service.updateContent(ctHolder, app_data, fis);
+		} catch (Exception e) {
+			throw new WTException(e);
+		} finally {
+			try {
+				if (fis != null)
+					fis.close();
+			} catch (Exception localException1) {
+				throw new Exception(localException1.getMessage());
+			}
+		}
+		if ((ctHolder instanceof FormatContentHolder)) {
+			try {
+				ctHolder = ContentServerHelper.service.updateHolderFormat((FormatContentHolder) ctHolder);
+			} catch (Exception wtpve) {
+				throw new WTException(wtpve);
+			}
+		}
+	}
+
+	public static boolean hasParent(WTPart part) {
+		boolean result = false;
+		if (part != null) {
+			try {
+				QueryResult qr = WTPartHelper.service.getUsedByWTParts((WTPartMaster) part.getMaster());
+				if (qr.size() > 0) {
+					result = true;
+				}
+			} catch (WTException e) {
+				e.printStackTrace();
 			}
 		}
 		return result;

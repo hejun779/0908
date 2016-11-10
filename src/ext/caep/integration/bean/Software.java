@@ -114,4 +114,16 @@ public class Software {
 
 	}
 
+	public void removePara(String paraID) {
+		if (paraID != null && paraID.length() > 0 && paras != null && !paras.isEmpty()) {
+			for (Para para : paras) {
+				if (paraID.equalsIgnoreCase(para.getID())) {
+					int index = paras.indexOf(para);
+					paras.set(index, null);
+					break;
+				}
+			}
+		}
+	}
+
 }
