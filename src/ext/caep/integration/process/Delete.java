@@ -33,7 +33,6 @@ import wt.query.SearchCondition;
 import wt.util.WTAttributeNameIfc;
 import wt.util.WTException;
 import wt.vc.VersionControlHelper;
-import wt.vc.Versioned;
 
 public class Delete {
 	private Global currentGlobal;
@@ -228,30 +227,40 @@ public class Delete {
 		}
 	}
 
-	private void delete(Versioned versioned) throws Exception {
-		if (versioned != null) {
-			PersistenceHelper.manager.delete(versioned);
+	private void delete(WTDocument doc) throws Exception {
+		if (doc != null) {
+			PersistenceHelper.manager.delete(doc);
+		} else {
+			throw new Exception("对象已经被删除");
+		}
+	}
+
+	private void delete(WTPart part) throws Exception {
+		if (part != null) {
+			PersistenceHelper.manager.delete(part);
 		} else {
 			throw new Exception("对象已经被删除");
 		}
 	}
 
 	private void deletePartFromPart(WTPart child, WTPart parent) throws PersistenceException, WTException {
-		if (parent != null && child != null) {
-			QueryResult all = VersionControlHelper.service.allIterationsOf(parent.getMaster());
-			WTCollection allParents = new WTHashSet(all);
-			Iterator<Persistable> iter = allParents.persistableIterator();
-			Collection<Long> ids = new ArrayList<Long>();
-			while (iter.hasNext()) {
-				Persistable p = iter.next();
-				ids.add(p.getPersistInfo().getObjectIdentifier().getId());
-			}
+		if (child != null) {
 			QuerySpec qs = new QuerySpec(WTPartUsageLink.class);
-			ClassAttribute roleA_ObjectId_Attr = new ClassAttribute(WTPartUsageLink.class, WTAttributeNameIfc.ROLEA_OBJECT_ID);
-			Long[] id_array = new Long[0];
-			id_array = ids.toArray(id_array);
-			qs.appendWhere(new SearchCondition(roleA_ObjectId_Attr, SearchCondition.IN, new ArrayExpression(id_array)), new int[] { 0 });
-			qs.appendAnd();
+			if (parent != null) {
+				QueryResult all = VersionControlHelper.service.allIterationsOf(parent.getMaster());
+				WTCollection allParents = new WTHashSet(all);
+				Iterator<Persistable> iter = allParents.persistableIterator();
+				Collection<Long> ids = new ArrayList<Long>();
+				while (iter.hasNext()) {
+					Persistable p = iter.next();
+					ids.add(p.getPersistInfo().getObjectIdentifier().getId());
+				}
+				ClassAttribute roleA_ObjectId_Attr = new ClassAttribute(WTPartUsageLink.class, WTAttributeNameIfc.ROLEA_OBJECT_ID);
+				Long[] id_array = new Long[0];
+				id_array = ids.toArray(id_array);
+				qs.appendWhere(new SearchCondition(roleA_ObjectId_Attr, SearchCondition.IN, new ArrayExpression(id_array)), new int[] { 0 });
+				qs.appendAnd();
+			}
 			qs.appendWhere(new SearchCondition(WTPartUsageLink.class, WTAttributeNameIfc.ROLEB_OBJECT_ID, SearchCondition.EQUAL, child.getMaster().getPersistInfo().getObjectIdentifier().getId()),
 					new int[] { 0 });
 			QueryResult qr = PersistenceHelper.manager.find(qs);
@@ -266,28 +275,22 @@ public class Delete {
 	}
 
 	private void deleteDocFromPart(WTPart part, WTDocument deleteDoc) throws WTException {
-		List<WTDocument> docs = new ArrayList<WTDocument>();
-		QueryResult all = VersionControlHelper.service.allIterationsOf(part.getMaster());
+		QueryResult all = VersionControlHelper.service.allIterationsOf(deleteDoc.getMaster());
 		while (all.hasMoreElements()) {
-			WTPart version = (WTPart) all.nextElement();
-			QueryResult qr = WTPartHelper.service.getDescribedByWTDocuments(version, false);
+			WTDocument doc = (WTDocument) all.nextElement();
+			QueryResult qr = WTPartHelper.service.getDescribesWTParts(doc, false);
 			if (qr.size() > 0) {
 				while (qr.hasMoreElements()) {
 					WTPartDescribeLink link = (WTPartDescribeLink) qr.nextElement();
-					WTDocument doc = link.getDescribedBy();
-					if (!docs.contains(doc) && doc.getNumber().equalsIgnoreCase(deleteDoc.getNumber())) {
-						docs.add(doc);
+					WTPart describePart = link.getDescribes();
+					if (describePart.getNumber().equalsIgnoreCase(describePart.getNumber())) {
 						PersistenceServerHelper.manager.remove(link);
 					}
 				}
 			}
 		}
-		if (!docs.isEmpty()) {
-			for (WTDocument doc : docs) {
-				if (!IntegrationUtil.hasDescribePart(doc) && IntegrationUtil.isOwn(doc)) {
-					PersistenceHelper.manager.delete(doc);
-				}
-			}
+		if (!IntegrationUtil.hasDescribePart(deleteDoc) && IntegrationUtil.isOwn(deleteDoc)) {
+			PersistenceHelper.manager.delete(deleteDoc);
 		}
 	}
 
@@ -303,15 +306,8 @@ public class Delete {
 					WTDocument doc = link.getDescribedBy();
 					if (!docs.contains(doc)) {
 						docs.add(doc);
+						deleteDocFromPart(part, doc);
 					}
-					PersistenceServerHelper.manager.remove(link);
-				}
-			}
-		}
-		if (!docs.isEmpty()) {
-			for (WTDocument doc : docs) {
-				if (!IntegrationUtil.hasDescribePart(doc) && IntegrationUtil.isOwn(doc)) {
-					PersistenceHelper.manager.delete(doc);
 				}
 			}
 		}

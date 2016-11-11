@@ -46,7 +46,7 @@ import wt.vc.wip.CheckoutLink;
 import wt.vc.wip.WorkInProgressHelper;
 import wt.vc.wip.Workable;
 
-public class DeleteTest15 implements RemoteAccess {
+public class DeleteTest22 implements RemoteAccess {
 	@SuppressWarnings("rawtypes")
 	private static Class TaskResultClass;
 
@@ -65,7 +65,130 @@ public class DeleteTest15 implements RemoteAccess {
 		// deleteDocLink();
 		RemoteMethodServer.getDefault().setUserName("demo");
 		RemoteMethodServer.getDefault().setPassword("demo");
-		searchPartUsageLink();
+		deletePartTest();
+	}
+
+	public static void deletePartTest() {
+		if (RemoteMethodServer.ServerFlag) {
+			ReferenceFactory factory = new ReferenceFactory();
+			try {
+				WTPart parent = (WTPart) factory.getReference("VR:wt.part.WTPart:85386").getObject();
+				WTPart child = (WTPart) factory.getReference("VR:wt.part.WTPart:85417").getObject();
+				deletePartFromPart(child, parent);
+			} catch (WTRuntimeException e) {
+				e.printStackTrace();
+			} catch (WTException e) {
+				e.printStackTrace();
+			}
+		} else {
+			try {
+				RemoteMethodServer.getDefault().invoke("deletePartTest", DeleteTest22.class.getName(), null, null, null);
+			} catch (RemoteException e) {
+				e.printStackTrace();
+			} catch (InvocationTargetException e) {
+				e.printStackTrace();
+			}
+		}
+	}
+
+	private static void deletePartFromPart(WTPart child, WTPart parent) throws PersistenceException, WTException {
+		if (parent != null && child != null) {
+			QueryResult all = VersionControlHelper.service.allIterationsOf(parent.getMaster());
+			WTCollection allParents = new WTHashSet(all);
+			Iterator<Persistable> iter = allParents.persistableIterator();
+			Collection<Long> ids = new ArrayList<Long>();
+			while (iter.hasNext()) {
+				Persistable p = iter.next();
+				ids.add(p.getPersistInfo().getObjectIdentifier().getId());
+			}
+			QuerySpec qs = new QuerySpec(WTPartUsageLink.class);
+			ClassAttribute roleA_ObjectId_Attr = new ClassAttribute(WTPartUsageLink.class, WTAttributeNameIfc.ROLEA_OBJECT_ID);
+			Long[] id_array = new Long[0];
+			id_array = ids.toArray(id_array);
+			qs.appendWhere(new SearchCondition(roleA_ObjectId_Attr, SearchCondition.IN, new ArrayExpression(id_array)), new int[] { 0 });
+			qs.appendAnd();
+			qs.appendWhere(new SearchCondition(WTPartUsageLink.class, WTAttributeNameIfc.ROLEB_OBJECT_ID, SearchCondition.EQUAL, child.getMaster().getPersistInfo().getObjectIdentifier().getId()),
+					new int[] { 0 });
+			QueryResult qr = PersistenceHelper.manager.find(qs);
+			while (qr.hasMoreElements()) {
+				WTPartUsageLink link = (WTPartUsageLink) qr.nextElement();
+				PersistenceServerHelper.manager.remove(link);
+			}
+			if (!IntegrationUtil.hasParent(child)) {
+				PersistenceHelper.manager.delete(child);
+			}
+		}
+	}
+
+	public static void deleteDocTest() {
+		if (RemoteMethodServer.ServerFlag) {
+			ReferenceFactory factory = new ReferenceFactory();
+			try {
+				WTPart parent = (WTPart) factory.getReference("VR:wt.part.WTPart:85386").getObject();
+				deleteDocFromPart(parent);
+			} catch (WTRuntimeException e) {
+				e.printStackTrace();
+			} catch (WTException e) {
+				e.printStackTrace();
+			}
+		} else {
+			try {
+				RemoteMethodServer.getDefault().invoke("deleteDocTest", DeleteTest22.class.getName(), null, null, null);
+			} catch (RemoteException e) {
+				e.printStackTrace();
+			} catch (InvocationTargetException e) {
+				e.printStackTrace();
+			}
+		}
+	}
+
+	private static void deleteDocFromPart(WTPart part, WTDocument deleteDoc) throws WTException {
+		QueryResult all = VersionControlHelper.service.allIterationsOf(deleteDoc.getMaster());
+		while (all.hasMoreElements()) {
+			WTDocument doc = (WTDocument) all.nextElement();
+			QueryResult qr = WTPartHelper.service.getDescribesWTParts(doc, false);
+			if (qr.size() > 0) {
+				while (qr.hasMoreElements()) {
+					WTPartDescribeLink link = (WTPartDescribeLink) qr.nextElement();
+					WTPart describePart = link.getDescribes();
+					if (describePart.getNumber().equalsIgnoreCase(describePart.getNumber())) {
+						PersistenceServerHelper.manager.remove(link);
+					}
+				}
+			}
+		}
+		if (!IntegrationUtil.hasDescribePart(deleteDoc)) {
+			PersistenceHelper.manager.delete(deleteDoc);
+		}
+	}
+
+	private static void deleteDocFromPart(WTPart part) throws WTException {
+		if (RemoteMethodServer.ServerFlag) {
+			List<WTDocument> docs = new ArrayList<WTDocument>();
+			QueryResult all = VersionControlHelper.service.allIterationsOf(part.getMaster());
+			while (all.hasMoreElements()) {
+				WTPart version = (WTPart) all.nextElement();
+				QueryResult qr = WTPartHelper.service.getDescribedByWTDocuments(version, false);
+				if (qr.size() > 0) {
+					while (qr.hasMoreElements()) {
+						WTPartDescribeLink link = (WTPartDescribeLink) qr.nextElement();
+						WTDocument doc = link.getDescribedBy();
+						if (!docs.contains(doc)) {
+							docs.add(doc);
+							deleteDocFromPart(part, doc);
+						}
+					}
+				}
+			}
+		} else {
+			try {
+				RemoteMethodServer.getDefault().invoke("deleteDocFromPart", DeleteTest22.class.getName(), null, null, null);
+			} catch (RemoteException e) {
+				e.printStackTrace();
+			} catch (InvocationTargetException e) {
+				e.printStackTrace();
+			}
+		}
 	}
 
 	public static void searchPartUsageLink() {
@@ -106,7 +229,7 @@ public class DeleteTest15 implements RemoteAccess {
 			}
 		} else {
 			try {
-				RemoteMethodServer.getDefault().invoke("searchPartUsageLink", DeleteTest15.class.getName(), null, null, null);
+				RemoteMethodServer.getDefault().invoke("searchPartUsageLink", DeleteTest22.class.getName(), null, null, null);
 			} catch (RemoteException e) {
 				e.printStackTrace();
 			} catch (InvocationTargetException e) {
@@ -143,7 +266,7 @@ public class DeleteTest15 implements RemoteAccess {
 			}
 		} else {
 			try {
-				RemoteMethodServer.getDefault().invoke("deletePart", DeleteTest15.class.getName(), null, null, null);
+				RemoteMethodServer.getDefault().invoke("deletePart", DeleteTest22.class.getName(), null, null, null);
 			} catch (RemoteException e) {
 				e.printStackTrace();
 			} catch (InvocationTargetException e) {
@@ -189,7 +312,7 @@ public class DeleteTest15 implements RemoteAccess {
 			}
 		} else {
 			try {
-				RemoteMethodServer.getDefault().invoke("deleteDoc", DeleteTest15.class.getName(), null, null, null);
+				RemoteMethodServer.getDefault().invoke("deleteDoc", DeleteTest22.class.getName(), null, null, null);
 			} catch (RemoteException e) {
 				e.printStackTrace();
 			} catch (InvocationTargetException e) {
