@@ -1,7 +1,5 @@
 package ext.caep.integration.process;
 
-import java.io.FileOutputStream;
-import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -13,12 +11,7 @@ import ext.caep.integration.bean.Project;
 import ext.caep.integration.bean.Software;
 import ext.caep.integration.bean.Task;
 import ext.caep.integration.util.IntegrationUtil;
-import wt.content.ApplicationData;
-import wt.content.ContentHelper;
-import wt.content.ContentRoleType;
-import wt.content.ContentServerHelper;
 import wt.doc.WTDocument;
-import wt.fc.QueryResult;
 import wt.part.WTPart;
 
 /**
@@ -39,7 +32,7 @@ public class Download {
 		} else if (root instanceof Para) {
 			downloadPara((Para) root);
 		} else if (root instanceof File) {
-			downloadFile((File) root);
+			((File) root).download();
 		}
 		return root;
 	}
@@ -55,18 +48,13 @@ public class Download {
 			if (allProjects != null && !allProjects.isEmpty()) {
 				List<Project> newProjects = new ArrayList<Project>();
 				for (WTPart projectPart : allProjects) {
-					Project project = downloadProject(projectPart);
+					Project project = new Project(projectPart);
+					downloadProject(project);
 					newProjects.add(project);
 				}
 				global.setProjects(newProjects);
 			}
 		}
-	}
-
-	private static Project downloadProject(WTPart projectPart) {
-		Project project = new Project(projectPart);
-		downloadProject(project);
-		return project;
 	}
 
 	private static void downloadProject(Project project) {
@@ -75,7 +63,7 @@ public class Download {
 			Files files = project.getFiles();
 			if (files != null && files.getFiles() != null && !files.getFiles().isEmpty()) {
 				for (File file : files.getFiles()) {
-					downloadFile(file);
+					file.download();
 				}
 			} else {
 				List<File> allFiles = downloadAllFileForPart(projectPart);
@@ -92,20 +80,20 @@ public class Download {
 				}
 			} else {
 				List<WTPart> taskParts = IntegrationUtil.getChildren(projectPart);
+				if (!IntegrationUtil.isAdmin()) {
+					taskParts = IntegrationUtil.filter(taskParts);
+				}
 				if (taskParts != null && !taskParts.isEmpty()) {
+					tasks = new ArrayList<Task>();
 					for (WTPart taskPart : taskParts) {
-						downloadTask(taskPart);
+						Task task = new Task(taskPart);
+						downloadTask(task);
+						tasks.add(task);
 					}
+					project.setTasks(tasks);
 				}
 			}
 		}
-	}
-
-	private static Task downloadTask(WTPart task) {
-		Task result = new Task(task);
-		downloadTask(result);
-		return result;
-
 	}
 
 	private static void downloadTask(Task task) {
@@ -115,7 +103,7 @@ public class Download {
 			if (files != null && files.getFiles() != null && !files.getFiles().isEmpty()) {
 				List<File> fileList = files.getFiles();
 				for (File file : fileList) {
-					downloadFile(file);
+					file.download();
 				}
 			} else {
 				List<File> allFiles = downloadAllFileForPart(taskPart);
@@ -136,15 +124,10 @@ public class Download {
 					List<Software> allSoftwares = new ArrayList<Software>();
 					for (WTPart softwarePart : softwareParts) {
 						Software software = new Software(softwarePart);
-						List<Para> paras = downloadSoftware(softwarePart);
-						if (paras != null && !paras.isEmpty()) {
-							software.setParas(paras);
-							allSoftwares.add(software);
-						}
+						downloadSoftware(software);
+						allSoftwares.add(software);
 					}
-					if (!allSoftwares.isEmpty()) {
-						task.setSoftwares(allSoftwares);
-					}
+					task.setSoftwares(allSoftwares);
 				}
 			}
 		}
@@ -158,37 +141,26 @@ public class Download {
 			}
 		} else {
 			WTPart softwarePart = IntegrationUtil.getPartFromNumber(software.getID());
-			List<Para> allParas = downloadSoftware(softwarePart);
-			if (allParas != null && !allParas.isEmpty()) {
-				software.setParas(allParas);
+			if (softwarePart != null) {
+				List<WTPart> allParas = IntegrationUtil.getChildren(softwarePart);
+				if (allParas != null && !allParas.isEmpty()) {
+					paras = new ArrayList<Para>();
+					for (WTPart paraPart : allParas) {
+						Para para = new Para(paraPart);
+						downloadPara(para);
+						paras.add(para);
+					}
+					software.setParas(paras);
+				}
 			}
 		}
-	}
-
-	private static List<Para> downloadSoftware(WTPart softwarePart) {
-		List<Para> paras = null;
-		List<WTPart> paraParts = IntegrationUtil.getChildren(softwarePart);
-		if (paraParts != null && !paraParts.isEmpty()) {
-			paras = new ArrayList<Para>();
-			for (WTPart paraPart : paraParts) {
-				Para para = downloadPara(paraPart);
-				paras.add(para);
-			}
-		}
-		return paras;
-	}
-
-	private static Para downloadPara(WTPart paraPart) {
-		Para para = new Para(paraPart);
-		downloadPara(para);
-		return para;
 	}
 
 	private static void downloadPara(Para para) {
 		List<File> files = para.getFiles();
 		if (files != null && !files.isEmpty()) {
 			for (File file : files) {
-				downloadFile(file);
+				file.download();
 			}
 		} else {
 			WTPart paraPart = IntegrationUtil.getPartFromNumber(para.getID());
@@ -197,48 +169,13 @@ public class Download {
 		}
 	}
 
-	private static String downloadFile(WTDocument doc) {
-		String path = "";
-		try {
-			QueryResult primary = ContentHelper.service.getContentsByRole(doc, ContentRoleType.PRIMARY);
-			while (primary.hasMoreElements()) {
-				ApplicationData data = (ApplicationData) primary.nextElement();
-				String fullName = data.getFileName();
-				InputStream is = ContentServerHelper.service.findContentStream(data);
-				java.io.File contentFile = IntegrationUtil.createShareFile(fullName);
-				FileOutputStream os = new FileOutputStream(contentFile);
-				byte buff[] = new byte[1024];
-				int len = 0;
-				while ((len = is.read(buff)) > 0) {
-					os.write(buff, 0, len);
-				}
-				os.close();
-				is.close();
-				path = contentFile.getPath();
-			}
-		} catch (Exception e) {
-			e.printStackTrace();
-		}
-		return path;
-	}
-
-	private static void downloadFile(File file) {
-		String path = "";
-		WTDocument doc = IntegrationUtil.getDocFromNumber(file.getID());
-		if (doc != null) {
-			path = downloadFile(doc);
-		}
-		file.setPath(path);
-	}
-
 	private static List<File> downloadAllFileForPart(WTPart part) {
 		List<File> files = new ArrayList<File>();
 		List<WTDocument> docs = IntegrationUtil.getDescribeDoc(part);
 		if (docs != null && !docs.isEmpty()) {
 			for (WTDocument doc : docs) {
-				String path = downloadFile(doc);
 				File file = new File(doc);
-				file.setPath(path);
+				file.download();
 				files.add(file);
 			}
 		}

@@ -3,6 +3,7 @@ package ext.caep.integration.util;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -988,5 +989,30 @@ public class IntegrationUtil implements RemoteAccess {
 			}
 		}
 		return result;
+	}
+
+	public static String downloadFile(WTDocument doc) {
+		String path = "";
+		try {
+			QueryResult primary = ContentHelper.service.getContentsByRole(doc, ContentRoleType.PRIMARY);
+			while (primary.hasMoreElements()) {
+				ApplicationData data = (ApplicationData) primary.nextElement();
+				String fullName = data.getFileName();
+				InputStream is = ContentServerHelper.service.findContentStream(data);
+				java.io.File contentFile = IntegrationUtil.createShareFile(fullName);
+				FileOutputStream os = new FileOutputStream(contentFile);
+				byte buff[] = new byte[1024];
+				int len = 0;
+				while ((len = is.read(buff)) > 0) {
+					os.write(buff, 0, len);
+				}
+				os.close();
+				is.close();
+				path = contentFile.getPath();
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		return path;
 	}
 }

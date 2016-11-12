@@ -27,7 +27,6 @@ public class Create {
 	private Project currentProject;
 	private Task currentTask;
 	private Software currentSoftware;
-	// private Para currentPara;
 	private String currentFolder;
 	private String parentNumber;
 	// 创建File的时候需要将项目或者Task的作为编号的前缀

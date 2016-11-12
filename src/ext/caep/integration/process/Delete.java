@@ -117,12 +117,7 @@ public class Delete {
 		deleteDocFromPart(task);
 		if (currentProject != null) {
 			WTPart project = IntegrationUtil.getPartFromNumber(currentProject.getID());
-			if (project != null) {
-				deletePartFromPart(task, project);
-			} else {
-				delete(task);
-			}
-
+			deletePartFromPart(task, project);
 		} else {
 			delete(task);
 		}
@@ -151,11 +146,7 @@ public class Delete {
 		if (currentTask != null) {
 			currentTask.removeSoftware(software.getNumber());
 			WTPart task = IntegrationUtil.getPartFromNumber(currentTask.getID());
-			if (task != null) {
-				deletePartFromPart(software, task);
-			} else {
-				delete(software);
-			}
+			deletePartFromPart(software, task);
 		} else {
 			delete(software);
 		}
@@ -183,11 +174,7 @@ public class Delete {
 		if (currentSoftware != null) {
 			currentSoftware.removePara(para.getNumber());
 			WTPart software = IntegrationUtil.getPartFromNumber(currentSoftware.getID());
-			if (software != null) {
-				deletePartFromPart(para, software);
-			} else {
-				delete(para);
-			}
+			deletePartFromPart(para, software);
 		} else {
 			delete(para);
 		}
@@ -208,11 +195,7 @@ public class Delete {
 		WTDocument doc = IntegrationUtil.getDocFromNumber(file.getID());
 		WTPart parentPart = IntegrationUtil.getPartFromNumber(parentNumber);
 		if (doc != null && IntegrationUtil.isOwn(doc)) {
-			if (parentPart != null) {
-				deleteDocFromPart(parentPart, doc);
-			} else {
-				delete(doc);
-			}
+			deleteDocFromPart(doc, parentPart);
 			if (currentParent != null) {
 				if (currentParent instanceof Files) {
 					Files files = (Files) currentParent;
@@ -224,14 +207,6 @@ public class Delete {
 			}
 		} else if (doc != null) {
 			throw new Exception("只能删除自己创建的文档");
-		}
-	}
-
-	private void delete(WTDocument doc) throws Exception {
-		if (doc != null) {
-			PersistenceHelper.manager.delete(doc);
-		} else {
-			throw new Exception("对象已经被删除");
 		}
 	}
 
@@ -274,7 +249,7 @@ public class Delete {
 		}
 	}
 
-	private void deleteDocFromPart(WTPart part, WTDocument deleteDoc) throws WTException {
+	private void deleteDocFromPart(WTDocument deleteDoc, WTPart part) throws WTException {
 		QueryResult all = VersionControlHelper.service.allIterationsOf(deleteDoc.getMaster());
 		while (all.hasMoreElements()) {
 			WTDocument doc = (WTDocument) all.nextElement();
@@ -283,7 +258,11 @@ public class Delete {
 				while (qr.hasMoreElements()) {
 					WTPartDescribeLink link = (WTPartDescribeLink) qr.nextElement();
 					WTPart describePart = link.getDescribes();
-					if (describePart.getNumber().equalsIgnoreCase(describePart.getNumber())) {
+					if (part != null) {
+						if (describePart.getNumber().equalsIgnoreCase(part.getNumber())) {
+							PersistenceServerHelper.manager.remove(link);
+						}
+					} else {
 						PersistenceServerHelper.manager.remove(link);
 					}
 				}
@@ -306,7 +285,7 @@ public class Delete {
 					WTDocument doc = link.getDescribedBy();
 					if (!docs.contains(doc)) {
 						docs.add(doc);
-						deleteDocFromPart(part, doc);
+						deleteDocFromPart(doc, part);
 					}
 				}
 			}

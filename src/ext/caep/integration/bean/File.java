@@ -195,4 +195,11 @@ public class File {
 		linkAttrs.put("partNumber", parentNumber);
 		LoadPart.createPartDocDescribes(linkAttrs, cmd_line, return_objects);
 	}
+
+	public void download() {
+		WTDocument doc = IntegrationUtil.getDocFromNumber(this.ID);
+		String filePath = IntegrationUtil.downloadFile(doc);
+		this.path = filePath;
+		this.state = "";
+	}
 }
