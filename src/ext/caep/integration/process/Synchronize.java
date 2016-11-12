@@ -13,9 +13,11 @@ import ext.caep.integration.bean.Task;
 import ext.caep.integration.util.IntegrationUtil;
 import wt.doc.WTDocument;
 import wt.part.WTPart;
+import wt.util.WTException;
+import wt.util.WTPropertyVetoException;
 
 public class Synchronize extends DataOperation {
-	public static void process(Object root) {
+	public static void process(Object root) throws WTPropertyVetoException, WTException {
 		if (root instanceof Global) {
 			syncGlobal((Global) root);
 		} else if (root instanceof Project) {
@@ -36,8 +38,10 @@ public class Synchronize extends DataOperation {
 	 * 
 	 * @param old
 	 * @return
+	 * @throws WTException
+	 * @throws WTPropertyVetoException
 	 */
-	private static void syncGlobal(Global old) {
+	private static void syncGlobal(Global old) throws WTPropertyVetoException, WTException {
 		old.setState("");
 		List<WTPart> projects = IntegrationUtil.getAllProject();
 		List<Project> projectBeans = new ArrayList<Project>();
@@ -53,9 +57,10 @@ public class Synchronize extends DataOperation {
 	 * 同步方案
 	 * 
 	 * @param root
+	 * @throws WTException
 	 */
 
-	private static Project syncProject(WTPart project) {
+	private static Project syncProject(WTPart project) throws WTException {
 		Project projectBean = new Project(project);
 		List<WTPart> tasks = IntegrationUtil.getChildren(project);
 		List<Task> taskBeans = new ArrayList<Task>();
@@ -77,7 +82,7 @@ public class Synchronize extends DataOperation {
 		return projectBean;
 	}
 
-	private static void syncProject(Project old) {
+	private static void syncProject(Project old) throws WTException {
 		WTPart project = IntegrationUtil.getPartFromNumber(old.getID());
 		Project newProject = syncProject(project);
 		old.setFiles(newProject.getFiles());
@@ -89,8 +94,9 @@ public class Synchronize extends DataOperation {
 	 * 
 	 * @param oldOne
 	 * @return
+	 * @throws WTException
 	 */
-	private static void syncTask(Task old) {
+	private static void syncTask(Task old) throws WTException {
 		WTPart task = IntegrationUtil.getPartFromNumber(old.getID());
 		Task updated = syncTask(task);
 		old.setName(task.getName());
@@ -100,7 +106,7 @@ public class Synchronize extends DataOperation {
 		old.setState(updated.getState());
 	}
 
-	private static Task syncTask(WTPart task) {
+	private static Task syncTask(WTPart task) throws WTException {
 		Task taskBean = new Task(task);
 		List<File> files = syncFiles(task);
 		if (files != null && !files.isEmpty()) {
@@ -126,8 +132,9 @@ public class Synchronize extends DataOperation {
 	 * 
 	 * @param software
 	 * @return
+	 * @throws WTException
 	 */
-	private static Software syncSoftware(WTPart software) {
+	private static Software syncSoftware(WTPart software) throws WTException {
 		Software softwareBean = new Software(software);
 		List<WTPart> paraParts = IntegrationUtil.getChildren(software);
 		if (paraParts != null && !paraParts.isEmpty()) {
@@ -141,7 +148,7 @@ public class Synchronize extends DataOperation {
 
 	}
 
-	private static void syncSoftware(Software old) {
+	private static void syncSoftware(Software old) throws WTException {
 		WTPart software = IntegrationUtil.getPartFromNumber(old.getID());
 		Software updated = syncSoftware(software);
 		old.setName(updated.getName());
@@ -154,14 +161,15 @@ public class Synchronize extends DataOperation {
 	 * 
 	 * @param para
 	 * @return
+	 * @throws WTException
 	 */
-	private static Para syncPara(WTPart para) {
+	private static Para syncPara(WTPart para) throws WTException {
 		Para paraBean = new Para(para);
 		paraBean.setFiles(syncFiles(para));
 		return paraBean;
 	}
 
-	private static void syncPara(Para old) {
+	private static void syncPara(Para old) throws WTException {
 		WTPart para = IntegrationUtil.getPartFromNumber(old.getID());
 		Para updated = syncPara(para);
 		old.setFiles(updated.getFiles());
@@ -180,7 +188,7 @@ public class Synchronize extends DataOperation {
 		return fileBean;
 	}
 
-	private static void syncFile(File old) {
+	private static void syncFile(File old) throws WTException {
 		WTDocument file = IntegrationUtil.getDocFromNumber(old.getID());
 		File updated = syncFile(file);
 		old.setName(updated.getName());
@@ -197,8 +205,9 @@ public class Synchronize extends DataOperation {
 	 * 
 	 * @param part
 	 * @return
+	 * @throws WTException
 	 */
-	private static List<File> syncFiles(WTPart part) {
+	private static List<File> syncFiles(WTPart part) throws WTException {
 		List<File> result = new ArrayList<File>();
 		List<WTDocument> docs = IntegrationUtil.getDescribeDoc(part);
 		for (WTDocument doc : docs) {

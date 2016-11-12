@@ -156,14 +156,8 @@ public class Task {
 	}
 
 	public void removeFile(String fileID) {
-		if (fileID != null && fileID.length() > 0 && files != null && files.getFiles() != null && !files.getFiles().isEmpty()) {
-			for (File file : files.getFiles()) {
-				if (fileID.equalsIgnoreCase(file.getID())) {
-					int index = files.getFiles().indexOf(file);
-					files.getFiles().set(index, null);
-					break;
-				}
-			}
+		if (files != null) {
+			this.removeFile(fileID);
 		}
 	}
 }

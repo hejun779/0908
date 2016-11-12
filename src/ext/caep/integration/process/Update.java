@@ -19,6 +19,8 @@ import wt.iba.value.service.LoadValue;
 import wt.part.LoadPart;
 import wt.part.WTPart;
 import wt.pom.Transaction;
+import wt.util.WTException;
+import wt.util.WTPropertyVetoException;
 
 public class Update {
 	public static Object process(Object root) throws Exception {
@@ -36,7 +38,7 @@ public class Update {
 		return root;
 	}
 
-	private static void updateProject(Project project) {
+	private static void updateProject(Project project) throws WTPropertyVetoException, WTException {
 		WTPart part = IntegrationUtil.getPartFromNumber(project.getID());
 		if (part != null) {
 			if (!part.getName().equals(project.getName())) {
@@ -68,7 +70,7 @@ public class Update {
 		}
 	}
 
-	private static void updateTask(Task task) {
+	private static void updateTask(Task task) throws WTException, WTPropertyVetoException {
 		WTPart part = IntegrationUtil.getPartFromNumber(task.getID());
 		if (part != null) {
 			if (!part.getName().equals(task.getName())) {
@@ -94,7 +96,7 @@ public class Update {
 		}
 	}
 
-	private static void updateSoftware(Software software) {
+	private static void updateSoftware(Software software) throws WTPropertyVetoException, WTException {
 		WTPart part = IntegrationUtil.getPartFromNumber(software.getID());
 		if (part != null) {
 			if (!part.getName().equals(software.getName())) {
@@ -104,7 +106,7 @@ public class Update {
 		}
 	}
 
-	private static void updatePara(Para para) {
+	private static void updatePara(Para para) throws WTException, WTPropertyVetoException {
 		WTPart part = IntegrationUtil.getPartFromNumber(para.getID());
 		if (part != null) {
 			if (!part.getName().equals(para.getName())) {

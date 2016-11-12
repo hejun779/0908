@@ -27,19 +27,16 @@ import ext.caep.integration.util.JaxbUtil;
 import ext.caep.integration.util.XMLUtil;
 import wt.method.RemoteAccess;
 import wt.pom.Transaction;
+import wt.util.WTException;
 
 public class IntegrationWebService implements RemoteAccess {
 	private Map<String, Object> parameters = new HashMap<String, Object>();
 
-	public void main(String[] args) {
-		userLoginService();
-	}
-
-	public Group userLoginService() {
+	public Group userLoginService() throws WTException {
 		Group group = new Group();
 		com.infoengine.object.factory.Element el = new com.infoengine.object.factory.Element();
 		el.addAtt(new Att("code", "0"));
-		el.addAtt(new Att("message", "乱测"));
+		el.addAtt(new Att("message", ""));
 		if (IntegrationUtil.isAdmin()) {
 			el.addAtt(new Att("data", Constant.ROLE_MANAGER));
 
@@ -67,15 +64,23 @@ public class IntegrationWebService implements RemoteAccess {
 		try {
 			trx = new Transaction();
 			trx.start();
-			File file = IntegrationUtil.getSharedFile(sharedFile);
-			XMLUtil xml = new XMLUtil(file);
+			File inputFile = IntegrationUtil.getSharedFile(sharedFile);
+			XMLUtil xml = new XMLUtil(inputFile);
 			Element rootEl = (Element) xml.getRoot().getChildren().get(0);
 			String rootState = rootEl.getAttributeValue(Constant.STATE);
 			String rootID = rootEl.getAttributeValue(Constant.ID);
-			Object root = JaxbUtil.xml2Object(file, rootEl);
-			processDelegate(root, rootState, rootID);
-			// 只有state状态为删除的时候没有输出文件
-			if (!rootState.equals(Constant.STATE_DELETE)) {
+			Object root = JaxbUtil.xml2Object(inputFile, rootEl);
+			// Files节点没有ID state属性,需要特殊处理
+			if (root instanceof Files) {
+				List<ext.caep.integration.bean.File> files = ((Files) root).getFiles();
+				for (ext.caep.integration.bean.File file : files) {
+					processDelegate(file, file.getState(), file.getID());
+				}
+			} else {
+				processDelegate(root, rootState, rootID);
+			}
+			// 只有根节点state状态为删除的时候没有输出文件
+			if (!Constant.STATE_DELETE.equals(rootState)) {
 				File outputFile = IntegrationUtil.createShareFile();
 				data = outputFile.getPath();// TODO
 				String parent = IntegrationUtil.getSharedFilePath(null) + File.separator;
@@ -85,7 +90,7 @@ public class IntegrationWebService implements RemoteAccess {
 				JaxbUtil.object2xml(root, outputFile);
 			}
 			el.addAtt(new Att("code", "0"));
-			el.addAtt(new Att("message", ""));
+			el.addAtt(new Att("message", "处理成功"));
 			el.addAtt(new Att("data", data));
 			// file.delete();//TODO
 			trx.commit();
@@ -104,7 +109,7 @@ public class IntegrationWebService implements RemoteAccess {
 	}
 
 	/**
-	 * 根据state状态,ID值进行请求转发
+	 * 根据state状态和ID值进行请求转发
 	 * 
 	 * @param root
 	 * @throws Exception
@@ -223,9 +228,6 @@ public class IntegrationWebService implements RemoteAccess {
 					processDelegate(file, file.getState(), file.getID());
 				}
 			}
-		} else if (root instanceof ext.caep.integration.bean.File) {
-			ext.caep.integration.bean.File file = (ext.caep.integration.bean.File) root;
-			processDelegate(file, file.getState(), file.getID());
 		}
 	}
 }

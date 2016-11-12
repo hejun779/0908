@@ -196,7 +196,7 @@ public class File {
 		LoadPart.createPartDocDescribes(linkAttrs, cmd_line, return_objects);
 	}
 
-	public void download() {
+	public void download() throws Exception {
 		WTDocument doc = IntegrationUtil.getDocFromNumber(this.ID);
 		String filePath = IntegrationUtil.downloadFile(doc);
 		this.path = filePath;

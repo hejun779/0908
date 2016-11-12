@@ -11,6 +11,7 @@ public class Constant {
 	public static final String SOFTWARE = "Software";
 	public static final String PARA = "Para";
 	public static final String FILE = "File";
+	public static final Object FILES = "Files";
 	public static final String STATE = "state";
 	public static final String DESCRIBE = "describe";
 	public static final String TYPE = "type";

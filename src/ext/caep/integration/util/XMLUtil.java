@@ -206,7 +206,6 @@ public class XMLUtil {
 				ostream = new FileOutputStream(file);
 				out.output(doc, ostream);
 				ostream.close();
-				System.out.println(file.getPath());
 				output = file.getPath();
 			} catch (FileNotFoundException e) {
 				e.printStackTrace();

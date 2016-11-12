@@ -10,6 +10,7 @@ import javax.xml.bind.Unmarshaller;
 
 import org.jdom.Element;
 
+import ext.caep.integration.bean.Files;
 import ext.caep.integration.bean.Global;
 import ext.caep.integration.bean.Para;
 import ext.caep.integration.bean.Project;
@@ -45,6 +46,8 @@ public class JaxbUtil {
 				cls = Para.class;
 			} else if (root.getName().equalsIgnoreCase(Constant.FILE)) {
 				cls = ext.caep.integration.bean.File.class;
+			} else if (root.getName().equals(Constant.FILES)) {
+				cls = Files.class;
 			}
 			try {
 				JAXBContext context = JAXBContext.newInstance(cls);
@@ -80,6 +83,8 @@ public class JaxbUtil {
 				cls = Para.class;
 			} else if (obj instanceof File) {
 				cls = ext.caep.integration.bean.File.class;
+			} else if (obj instanceof Files) {
+				cls = Files.class;
 			}
 			try {
 				JAXBContext context = JAXBContext.newInstance(cls);

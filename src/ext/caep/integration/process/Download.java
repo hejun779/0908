@@ -20,7 +20,7 @@ import wt.part.WTPart;
  *
  */
 public class Download {
-	public static Object process(Object root) {
+	public static Object process(Object root) throws Exception {
 		if (root instanceof Global) {
 			downloadGlobal((Global) root);
 		} else if (root instanceof Project) {
@@ -37,7 +37,7 @@ public class Download {
 		return root;
 	}
 
-	private static void downloadGlobal(Global global) {
+	private static void downloadGlobal(Global global) throws Exception {
 		List<Project> projects = global.getProjects();
 		if (projects != null && !projects.isEmpty()) {
 			for (Project project : projects) {
@@ -57,7 +57,7 @@ public class Download {
 		}
 	}
 
-	private static void downloadProject(Project project) {
+	private static void downloadProject(Project project) throws Exception {
 		WTPart projectPart = IntegrationUtil.getPartFromNumber(project.getID());
 		if (projectPart != null) {
 			Files files = project.getFiles();
@@ -96,7 +96,7 @@ public class Download {
 		}
 	}
 
-	private static void downloadTask(Task task) {
+	private static void downloadTask(Task task) throws Exception {
 		WTPart taskPart = IntegrationUtil.getPartFromNumber(task.getID());
 		if (taskPart != null) {
 			Files files = task.getFiles();
@@ -133,7 +133,7 @@ public class Download {
 		}
 	}
 
-	private static void downloadSoftware(Software software) {
+	private static void downloadSoftware(Software software) throws Exception {
 		List<Para> paras = software.getParas();
 		if (paras != null && !paras.isEmpty()) {
 			for (Para para : paras) {
@@ -156,7 +156,7 @@ public class Download {
 		}
 	}
 
-	private static void downloadPara(Para para) {
+	private static void downloadPara(Para para) throws Exception {
 		List<File> files = para.getFiles();
 		if (files != null && !files.isEmpty()) {
 			for (File file : files) {
@@ -169,7 +169,7 @@ public class Download {
 		}
 	}
 
-	private static List<File> downloadAllFileForPart(WTPart part) {
+	private static List<File> downloadAllFileForPart(WTPart part) throws Exception {
 		List<File> files = new ArrayList<File>();
 		List<WTDocument> docs = IntegrationUtil.getDescribeDoc(part);
 		if (docs != null && !docs.isEmpty()) {
