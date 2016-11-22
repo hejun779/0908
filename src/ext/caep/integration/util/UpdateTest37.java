@@ -1,16 +1,24 @@
 package ext.caep.integration.util;
 
+import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
+import java.io.FileReader;
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 import java.rmi.RemoteException;
 import java.util.Locale;
 
+import com.google.common.io.Files;
+import com.infoengine.administration.delegate.Task;
 import com.ptc.core.lwc.server.LWCNormalizedObject;
 import com.ptc.core.meta.common.CreateOperationIdentifier;
 
+import ext.caep.integration.bean.Global;
+import ext.caep.integration.bean.Para;
+import ext.caep.integration.bean.Project;
+import ext.caep.integration.bean.Software;
 import wt.content.ApplicationData;
 import wt.content.ContentHelper;
 import wt.content.ContentRoleType;
@@ -52,10 +60,52 @@ public class UpdateTest37 implements RemoteAccess {
 		// } catch (WTPropertyVetoException e) {
 		// e.printStackTrace();
 		// }
-		RemoteMethodServer.getDefault().setUserName("demo");
-		RemoteMethodServer.getDefault().setPassword("demo");
-		updateLob();
+		// RemoteMethodServer.getDefault().setUserName("demo");
+		// RemoteMethodServer.getDefault().setPassword("demo");
+		// updateLob();
+		testFile();
+	}
 
+	public static void testFile() {
+		Class cls = null;
+		try {
+			long now = System.currentTimeMillis();
+			File file = new File("d:\\createProject.xml");
+			BufferedReader reader = new BufferedReader(new FileReader(file));
+			String line = null;
+			while ((line = reader.readLine()) != null) {
+				line = line.toUpperCase();
+				if (line.contains("<GLOBAL")) {
+					cls = Global.class;
+					break;
+				} else if (line.contains("<PROJECT")) {
+					cls = Project.class;
+					break;
+				} else if (line.contains("<TASK")) {
+					cls = Task.class;
+					break;
+				} else if (line.contains("<SOFTWARE")) {
+					cls = Software.class;
+					break;
+				} else if (line.contains("<PARA")) {
+					cls = Para.class;
+					break;
+				} else if (line.contains("<FILES")) {
+					cls = Files.class;
+					break;
+				} else if (line.contains("<FILE")) {
+					cls = File.class;
+					break;
+				}
+			}
+			// Object root = JaxbUtil.xml2Object(file, cls);
+			reader.close();
+			System.out.println(cls);
+			// System.out.println(root);
+			System.out.println(System.currentTimeMillis() - now);
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
 	}
 
 	public static void updateLob() {
@@ -164,8 +214,10 @@ public class UpdateTest37 implements RemoteAccess {
 			try {
 				WTDocument part = (WTDocument) factory.getReference("VR:wt.doc.WTDocument:73010").getObject();
 				part.setDescription("testupdate");
-				part = (WTDocument) IBAUtility.setIBAValue(part, Constant.ATTR_CAEP_AUTHOR, "atom");
-				part = (WTDocument) IBAUtility.setIBAValue(part, Constant.ATTR_CAEP_ORGAN, "organ");
+				// part = (WTDocument) IBAUtility.setIBAValue(part,
+				// Constant.ATTR_CAEP_AUTHOR, "atom");
+				// part = (WTDocument) IBAUtility.setIBAValue(part,
+				// Constant.ATTR_CAEP_ORGAN, "organ");
 			} catch (WTRuntimeException e) {
 				e.printStackTrace();
 			} catch (WTException e) {

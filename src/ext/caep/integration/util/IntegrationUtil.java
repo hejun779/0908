@@ -4,6 +4,7 @@ import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
+import java.io.FileReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -19,11 +20,17 @@ import java.util.Properties;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import com.google.common.io.Files;
 import com.ptc.core.meta.common.IdentifierFactory;
 import com.ptc.core.meta.common.TypeIdentifier;
 import com.ptc.core.meta.common.impl.TypeIdentifierUtilityHelper;
 import com.ptc.windchill.enterprise.team.server.TeamCCHelper;
 
+import ext.caep.integration.bean.Global;
+import ext.caep.integration.bean.Para;
+import ext.caep.integration.bean.Project;
+import ext.caep.integration.bean.Software;
+import ext.caep.integration.bean.Task;
 import wt.content.ApplicationData;
 import wt.content.ContentHelper;
 import wt.content.ContentHolder;
@@ -147,6 +154,9 @@ public class IntegrationUtil implements RemoteAccess {
 		String filePath = getSharedFilePath(sharedFileName);
 		if (filePath != null && filePath.length() > 0) {
 			file = new File(filePath);
+		}
+		if (file == null || !file.exists()) {
+			throw new Exception("读取共享文件失败");
 		}
 		return file;
 	}
@@ -819,5 +829,81 @@ public class IntegrationUtil implements RemoteAccess {
 			path = contentFile.getPath();
 		}
 		return path;
+	}
+
+	public static Class findRootClass(File file) throws Exception {
+		Class cls = null;
+		BufferedReader reader = new BufferedReader(new FileReader(file));
+		String line = null;
+		while ((line = reader.readLine()) != null) {
+			line = line.toUpperCase();
+			if (line.contains("<GLOBAL")) {
+				cls = Global.class;
+				break;
+			} else if (line.contains("<PROJECT")) {
+				cls = Project.class;
+				break;
+			} else if (line.contains("<TASK")) {
+				cls = Task.class;
+				break;
+			} else if (line.contains("<SOFTWARE")) {
+				cls = Software.class;
+				break;
+			} else if (line.contains("<PARA")) {
+				cls = Para.class;
+				break;
+			} else if (line.contains("<FILES")) {
+				cls = Files.class;
+				break;
+			} else if (line.contains("<FILE")) {
+				cls = File.class;
+				break;
+			}
+		}
+		reader.close();
+		if (cls == null) {
+			throw new Exception("找不到合适的根节点");
+		}
+		return cls;
+	}
+
+	public static String getState(Object node) {
+		String state = null;
+		if (node != null) {
+			if (node instanceof Global) {
+				state = ((Global) node).getState();
+			} else if (node instanceof Project) {
+				state = ((Project) node).getState();
+			} else if (node instanceof Task) {
+				state = ((Task) node).getState();
+			} else if (node instanceof Software) {
+				state = ((Software) node).getState();
+			} else if (node instanceof Para) {
+				state = ((Para) node).getState();
+			} else if (node instanceof File) {
+				state = ((ext.caep.integration.bean.File) node).getState();
+			}
+		}
+		return state;
+	}
+
+	public static String getID(Object node) {
+		String ID = null;
+		if (node != null) {
+			if (node instanceof Global) {
+				ID = ((Global) node).getID();
+			} else if (node instanceof Project) {
+				ID = ((Project) node).getID();
+			} else if (node instanceof Task) {
+				ID = ((Task) node).getID();
+			} else if (node instanceof Software) {
+				ID = ((Software) node).getID();
+			} else if (node instanceof Para) {
+				ID = ((Para) node).getID();
+			} else if (node instanceof File) {
+				ID = ((ext.caep.integration.bean.File) node).getID();
+			}
+		}
+		return ID;
 	}
 }

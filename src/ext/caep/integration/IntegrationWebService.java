@@ -5,8 +5,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.jdom.Element;
-
 import com.infoengine.object.factory.Att;
 import com.infoengine.object.factory.Group;
 
@@ -24,7 +22,6 @@ import ext.caep.integration.process.Update;
 import ext.caep.integration.util.Constant;
 import ext.caep.integration.util.IntegrationUtil;
 import ext.caep.integration.util.JaxbUtil;
-import ext.caep.integration.util.XMLUtil;
 import wt.method.RemoteAccess;
 import wt.pom.Transaction;
 import wt.util.WTException;
@@ -65,11 +62,10 @@ public class IntegrationWebService implements RemoteAccess {
 			trx = new Transaction();
 			trx.start();
 			File inputFile = IntegrationUtil.getSharedFile(sharedFile);
-			XMLUtil xml = new XMLUtil(inputFile);
-			Element rootEl = (Element) xml.getRoot().getChildren().get(0);
-			String rootState = rootEl.getAttributeValue(Constant.STATE);
-			String rootID = rootEl.getAttributeValue(Constant.ID);
-			Object root = JaxbUtil.xml2Object(inputFile, rootEl);
+			Class rootClass = IntegrationUtil.findRootClass(inputFile);
+			Object root = JaxbUtil.xml2Object(inputFile, rootClass);
+			String rootState = IntegrationUtil.getState(root);
+			String rootID = IntegrationUtil.getID(root);
 			// Files节点没有ID state属性,需要特殊处理
 			if (root instanceof Files) {
 				List<ext.caep.integration.bean.File> files = ((Files) root).getFiles();
@@ -116,15 +112,15 @@ public class IntegrationWebService implements RemoteAccess {
 	 */
 	private void processDelegate(Object root, String state, String rootID) throws Exception {
 		// 创建:如果ID为空,不管state的值,表示创建,并且忽略所有子节点的state的状态,全部都视为创建
-		if (rootID.equals("")) {
+		if ("".equals(rootID)) {
 			new Create().process(parameters, root);
 		}
 		// 删除:如果state表示删除,将删除此节点,忽略子节点的状态,并根据角色依次删除所有子节点
-		else if (state.equals(Constant.STATE_DELETE)) {
+		else if (Constant.STATE_DELETE.equals(state)) {
 			new Delete().process(parameters, root);
 		}
 		// 编辑:如果state表示更新,将更新此节点,且只更新此节点,子节点将根据自身的state状态进行处理
-		else if (state.equals(Constant.STATE_UPDATE)) {
+		else if (Constant.STATE_UPDATE.equals(state)) {
 			if (!(root instanceof Global)) {
 				Update.process(root);
 			}
@@ -133,13 +129,13 @@ public class IntegrationWebService implements RemoteAccess {
 			}
 		}
 		// 同步:如果state表示同步,则同步包括此节点和所有子节点,忽略所有子节点的state状态
-		else if (state.equals(Constant.STATE_SYNCHRONIZE)) {
+		else if (Constant.STATE_SYNCHRONIZE.equals(state)) {
 			Synchronize.process(root);
 		}
 		// 下载:如果state表示下载,则下载此节点和所有子节点的文档主内容,忽略所有子节点的stae状态
-		else if (state.equals(Constant.STATE_DOWNLOAD)) {
+		else if (Constant.STATE_DOWNLOAD.equals(state)) {
 			Download.process(root);
-		} else if (state.equals(Constant.STATE_NOCHANGE)) {
+		} else if (Constant.STATE_NOCHANGE.equals(state)) {
 			if (!(root instanceof ext.caep.integration.bean.File)) {
 				childrenDelegate(root);
 			}

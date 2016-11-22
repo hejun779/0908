@@ -29,8 +29,9 @@ public class JaxbUtil {
 	 * @param xmlFile
 	 * @param root
 	 * @return
+	 * @throws JAXBException
 	 */
-	public static Object xml2Object(File xmlFile, Element root) {
+	public static Object xml2Object(Element root) throws JAXBException {
 		Object result = null;
 		if (root != null) {
 			Class cls = null;
@@ -49,12 +50,29 @@ public class JaxbUtil {
 			} else if (root.getName().equals(Constant.FILES)) {
 				cls = Files.class;
 			}
+			JAXBContext context = JAXBContext.newInstance(cls);
+			Unmarshaller unmarshaller = context.createUnmarshaller();
+			String rootContent = XMLUtil.outputString(root);
+			StringReader reader = new StringReader(rootContent);
+			result = unmarshaller.unmarshal(reader);
+		}
+		return result;
+	}
+
+	/**
+	 * 将XML文件的内容转换成Java对象
+	 * 
+	 * @param xmlFile
+	 * @param root
+	 * @return
+	 */
+	public static Object xml2Object(File xmlFile, Class rootCls) {
+		Object result = null;
+		if (rootCls != null) {
 			try {
-				JAXBContext context = JAXBContext.newInstance(cls);
+				JAXBContext context = JAXBContext.newInstance(rootCls);
 				Unmarshaller unmarshaller = context.createUnmarshaller();
-				String rootContent = XMLUtil.outputString(root);
-				StringReader reader = new StringReader(rootContent);
-				result = unmarshaller.unmarshal(reader);
+				result = unmarshaller.unmarshal(xmlFile);
 			} catch (JAXBException e) {
 				e.printStackTrace();
 			}
