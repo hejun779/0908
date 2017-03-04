@@ -51,6 +51,7 @@ public class IntegrationWebService implements RemoteAccess {
 	 * 供Task调用,将共享的输入文件作为输入,根据ID和state状态进行数据处理
 	 * 
 	 * @param sharedFile
+	 *            格式 username\\timestamp\\input.xml
 	 * @return
 	 */
 	public Group dataOperationService(String sharedFile) {
@@ -61,7 +62,15 @@ public class IntegrationWebService implements RemoteAccess {
 		try {
 			trx = new Transaction();
 			trx.start();
+			// \\host\\sharepath\\username\\timestamp\\inputfile.xml
 			File inputFile = IntegrationUtil.getSharedFile(sharedFile);
+			// 输入文件父级文件夹(绝对路径) \\host\\sharepath\\username\\timestamp
+			String filePath = inputFile.getParent();
+			// \\host\\sharepath\\
+			String rootPath = IntegrationUtil.getSharedFilePath(null) + File.pathSeparator;
+			// 相对路径前缀 username\\timestamp
+			filePath = filePath.substring(rootPath.length());
+			parameters.put("filePath", filePath);
 			Class rootClass = IntegrationUtil.findRootClass(inputFile);
 			Object root = JaxbUtil.xml2Object(inputFile, rootClass);
 			String rootState = IntegrationUtil.getState(root);
@@ -77,18 +86,14 @@ public class IntegrationWebService implements RemoteAccess {
 			}
 			// 只有根节点state状态为删除的时候没有输出文件
 			if (!Constant.STATE_DELETE.equals(rootState)) {
-				File outputFile = IntegrationUtil.createShareFile();
-				data = outputFile.getPath();// TODO
-				String parent = IntegrationUtil.getSharedFilePath(null) + File.separator;
-				if (data.startsWith(parent)) {
-					data = data.substring(parent.length());
-				}
+				String uniqueFileName = System.currentTimeMillis() + ".xml";
+				data = filePath + File.separator + uniqueFileName;
+				File outputFile = IntegrationUtil.createShareFile(filePath, uniqueFileName);
 				JaxbUtil.object2xml(root, outputFile);
 			}
 			el.addAtt(new Att("code", "0"));
 			el.addAtt(new Att("message", "处理成功"));
 			el.addAtt(new Att("data", data));
-			// file.delete();//TODO
 			trx.commit();
 			trx = null;
 		} catch (Exception e) {
@@ -113,16 +118,16 @@ public class IntegrationWebService implements RemoteAccess {
 	private void processDelegate(Object root, String state, String rootID) throws Exception {
 		// 创建:如果ID为空,不管state的值,表示创建,并且忽略所有子节点的state的状态,全部都视为创建
 		if ("".equals(rootID)) {
-			new Create().process(parameters, root);
+			new Create(parameters).process(root);
 		}
 		// 删除:如果state表示删除,将删除此节点,忽略子节点的状态,并根据角色依次删除所有子节点
 		else if (Constant.STATE_DELETE.equals(state)) {
-			new Delete().process(parameters, root);
+			new Delete(parameters).process(root);
 		}
 		// 编辑:如果state表示更新,将更新此节点,且只更新此节点,子节点将根据自身的state状态进行处理
 		else if (Constant.STATE_UPDATE.equals(state)) {
 			if (!(root instanceof Global)) {
-				Update.process(root);
+				new Update(parameters).process(root);
 			}
 			if (!(root instanceof ext.caep.integration.bean.File)) {
 				childrenDelegate(root);
@@ -130,11 +135,11 @@ public class IntegrationWebService implements RemoteAccess {
 		}
 		// 同步:如果state表示同步,则同步包括此节点和所有子节点,忽略所有子节点的state状态
 		else if (Constant.STATE_SYNCHRONIZE.equals(state)) {
-			Synchronize.process(root);
+			new Synchronize().process(root);
 		}
 		// 下载:如果state表示下载,则下载此节点和所有子节点的文档主内容,忽略所有子节点的stae状态
 		else if (Constant.STATE_DOWNLOAD.equals(state)) {
-			Download.process(root);
+			new Download(parameters).process(root);
 		} else if (Constant.STATE_NOCHANGE.equals(state)) {
 			if (!(root instanceof ext.caep.integration.bean.File)) {
 				childrenDelegate(root);
@@ -212,9 +217,12 @@ public class IntegrationWebService implements RemoteAccess {
 		} else if (root instanceof Para) {
 			Para para = (Para) root;
 			parameters.put("parentNumber", para.getID());
+			parameters.put("numberPrefixObj", para);
 			List<ext.caep.integration.bean.File> files = para.getFiles();
-			for (ext.caep.integration.bean.File file : files) {
-				processDelegate(file, file.getState(), file.getID());
+			if (files != null && !files.isEmpty()) {
+				for (ext.caep.integration.bean.File file : files) {
+					processDelegate(file, file.getState(), file.getID());
+				}
 			}
 		} else if (root instanceof Files) {
 			Files files = (Files) root;

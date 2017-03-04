@@ -87,7 +87,7 @@ public class Para {
 			this.ID = number;
 			partAttrs.put("partNumber", number);
 			partAttrs.put("partName", this.name);
-			partAttrs.put("parentContainerPath", "/wt.inf.container.OrgContainer=ptc/wt.pdmlink.PDMLinkProduct=" + IntegrationUtil.getProperty("product"));
+			partAttrs.put("parentContainerPath", IntegrationUtil.getContainerPath());
 			partAttrs.put("type", "component");
 			partAttrs.put("typedef", Constant.SOFTTYPE_PARA);
 			partAttrs.put("source", "make");

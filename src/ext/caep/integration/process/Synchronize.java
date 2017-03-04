@@ -17,7 +17,8 @@ import wt.util.WTException;
 import wt.util.WTPropertyVetoException;
 
 public class Synchronize extends DataOperation {
-	public static void process(Object root) throws WTPropertyVetoException, WTException {
+
+	public void process(Object root) throws Exception {
 		if (root instanceof Global) {
 			syncGlobal((Global) root);
 		} else if (root instanceof Project) {
@@ -41,7 +42,7 @@ public class Synchronize extends DataOperation {
 	 * @throws WTException
 	 * @throws WTPropertyVetoException
 	 */
-	private static void syncGlobal(Global old) throws WTPropertyVetoException, WTException {
+	private void syncGlobal(Global old) throws WTPropertyVetoException, WTException {
 		old.setState("");
 		List<WTPart> projects = IntegrationUtil.getAllProject();
 		List<Project> projectBeans = new ArrayList<Project>();
@@ -60,7 +61,7 @@ public class Synchronize extends DataOperation {
 	 * @throws WTException
 	 */
 
-	private static Project syncProject(WTPart project) throws WTException {
+	private Project syncProject(WTPart project) throws WTException {
 		Project projectBean = new Project(project);
 		List<WTPart> tasks = IntegrationUtil.getChildren(project);
 		List<Task> taskBeans = new ArrayList<Task>();
@@ -82,11 +83,15 @@ public class Synchronize extends DataOperation {
 		return projectBean;
 	}
 
-	private static void syncProject(Project old) throws WTException {
+	private void syncProject(Project old) throws Exception {
 		WTPart project = IntegrationUtil.getPartFromNumber(old.getID());
-		Project newProject = syncProject(project);
-		old.setFiles(newProject.getFiles());
-		old.setTasks(newProject.getTasks());
+		if (project != null) {
+			Project newProject = syncProject(project);
+			old.setFiles(newProject.getFiles());
+			old.setTasks(newProject.getTasks());
+		} else {
+			throw new Exception("ID为" + old.getID() + "的方案不存在");
+		}
 	}
 
 	/**
@@ -94,19 +99,23 @@ public class Synchronize extends DataOperation {
 	 * 
 	 * @param oldOne
 	 * @return
-	 * @throws WTException
+	 * @throws Exception
 	 */
-	private static void syncTask(Task old) throws WTException {
+	private void syncTask(Task old) throws Exception {
 		WTPart task = IntegrationUtil.getPartFromNumber(old.getID());
-		Task updated = syncTask(task);
-		old.setName(task.getName());
-		old.setDescribe(updated.getDescribe());
-		old.setFiles(updated.getFiles());
-		old.setSoftwares(updated.getSoftwares());
-		old.setState(updated.getState());
+		if (task != null) {
+			Task updated = syncTask(task);
+			old.setName(task.getName());
+			old.setDescribe(updated.getDescribe());
+			old.setFiles(updated.getFiles());
+			old.setSoftwares(updated.getSoftwares());
+			old.setState(updated.getState());
+		} else {
+			throw new Exception("ID为" + old.getID() + "的计算任务不存在");
+		}
 	}
 
-	private static Task syncTask(WTPart task) throws WTException {
+	private Task syncTask(WTPart task) throws WTException {
 		Task taskBean = new Task(task);
 		List<File> files = syncFiles(task);
 		if (files != null && !files.isEmpty()) {
@@ -134,7 +143,7 @@ public class Synchronize extends DataOperation {
 	 * @return
 	 * @throws WTException
 	 */
-	private static Software syncSoftware(WTPart software) throws WTException {
+	private Software syncSoftware(WTPart software) throws WTException {
 		Software softwareBean = new Software(software);
 		List<WTPart> paraParts = IntegrationUtil.getChildren(software);
 		if (paraParts != null && !paraParts.isEmpty()) {
@@ -148,12 +157,16 @@ public class Synchronize extends DataOperation {
 
 	}
 
-	private static void syncSoftware(Software old) throws WTException {
+	private void syncSoftware(Software old) throws Exception {
 		WTPart software = IntegrationUtil.getPartFromNumber(old.getID());
-		Software updated = syncSoftware(software);
-		old.setName(updated.getName());
-		old.setParas(updated.getParas());
-		old.setState(updated.getState());
+		if (software != null) {
+			Software updated = syncSoftware(software);
+			old.setName(updated.getName());
+			old.setParas(updated.getParas());
+			old.setState(updated.getState());
+		} else {
+			throw new Exception("ID为" + old.getID() + "的专有软件不存在");
+		}
 	}
 
 	/**
@@ -163,18 +176,22 @@ public class Synchronize extends DataOperation {
 	 * @return
 	 * @throws WTException
 	 */
-	private static Para syncPara(WTPart para) throws WTException {
+	private Para syncPara(WTPart para) throws WTException {
 		Para paraBean = new Para(para);
 		paraBean.setFiles(syncFiles(para));
 		return paraBean;
 	}
 
-	private static void syncPara(Para old) throws WTException {
+	private void syncPara(Para old) throws Exception {
 		WTPart para = IntegrationUtil.getPartFromNumber(old.getID());
-		Para updated = syncPara(para);
-		old.setFiles(updated.getFiles());
-		old.setName(updated.getName());
-		old.setState(updated.getState());
+		if (para != null) {
+			Para updated = syncPara(para);
+			old.setFiles(updated.getFiles());
+			old.setName(updated.getName());
+			old.setState(updated.getState());
+		} else {
+			throw new Exception("ID为" + old.getID() + "的计算参数不存在");
+		}
 	}
 
 	/**
@@ -183,20 +200,24 @@ public class Synchronize extends DataOperation {
 	 * @param file
 	 * @return
 	 */
-	private static File syncFile(WTDocument file) {
+	private File syncFile(WTDocument file) {
 		File fileBean = new File(file);
 		return fileBean;
 	}
 
-	private static void syncFile(File old) throws WTException {
+	private void syncFile(File old) throws Exception {
 		WTDocument file = IntegrationUtil.getDocFromNumber(old.getID());
-		File updated = syncFile(file);
-		old.setName(updated.getName());
-		old.setAuthor(updated.getAuthor());
-		old.setOrgan(updated.getOrgan());
-		old.setType(updated.getType());
-		old.setDescribe(updated.getDescribe());
-		old.setState("");
+		if (file != null) {
+			File updated = syncFile(file);
+			old.setName(updated.getName());
+			old.setAuthor(updated.getAuthor());
+			old.setOrgan(updated.getOrgan());
+			old.setType(updated.getType());
+			old.setDescribe(updated.getDescribe());
+			old.setState("");
+		} else {
+			throw new Exception("ID为" + old.getID() + "的文件不存在");
+		}
 
 	}
 

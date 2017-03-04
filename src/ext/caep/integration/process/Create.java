@@ -12,6 +12,7 @@ import ext.caep.integration.bean.Software;
 import ext.caep.integration.bean.Task;
 import ext.caep.integration.util.Constant;
 import ext.caep.integration.util.IntegrationUtil;
+import wt.part.WTPart;
 
 /**
  * 
@@ -20,19 +21,16 @@ import ext.caep.integration.util.IntegrationUtil;
  */
 public class Create {
 
-	public Create() {
-
-	}
-
 	private Project currentProject;
 	private Task currentTask;
 	private Software currentSoftware;
 	private String currentFolder;
 	private String parentNumber;
+	private String filePath;
 	// 创建File的时候需要将项目或者Task的作为编号的前缀
 	private Object numberPrefixObj;
 
-	public void process(Map<String, Object> parameters, Object root) throws Exception {
+	public Create(Map<String, Object> parameters) {
 		this.currentProject = (Project) parameters.get("currentProject");
 		this.currentTask = (Task) parameters.get("currentTask");
 		this.currentSoftware = (Software) parameters.get("currentSoftware");
@@ -40,6 +38,10 @@ public class Create {
 		this.currentFolder = (String) parameters.get("currentFolder");
 		this.parentNumber = (String) parameters.get("parentNumber");
 		this.numberPrefixObj = parameters.get("numberPrefixObj");
+		this.filePath = (String) parameters.get("filePath");
+	}
+
+	public void process(Object root) throws Exception {
 		if (root instanceof Global) {
 			createGlobal((Global) root);
 		} else if (root instanceof Project) {
@@ -53,11 +55,43 @@ public class Create {
 		} else if (root instanceof File) {
 			File file = (File) root;
 			if (numberPrefixObj != null) {
-				if (numberPrefixObj instanceof Project || numberPrefixObj instanceof Task) {
-					file.newDocument(parentNumber, currentProject, currentFolder);
+				if (numberPrefixObj instanceof Project) {
+					file.newDocument(parentNumber, currentProject, this.filePath, currentFolder);
+				} else if (numberPrefixObj instanceof Task) {
+					file.newDocument(parentNumber, currentTask, this.filePath, currentFolder);
 				} else if (numberPrefixObj instanceof Para) {
-					file.newDocument(parentNumber, currentTask, currentFolder);
+					if (this.currentFolder == null) {
+						if (this.currentSoftware == null) {
+							Para para = (Para) numberPrefixObj;
+							WTPart paraPart = IntegrationUtil.getPartFromNumber(para.getID());
+							if (paraPart != null) {
+								WTPart softwarePart = IntegrationUtil.getParent(paraPart);
+								if (softwarePart != null) {
+									this.currentSoftware = new Software(softwarePart);
+									this.currentFolder = softwarePart.getName() + "文件";
+								}
+							} else {
+								throw new Exception("ID为" + para.getID() + "的计算参数不存在.");
+							}
+						}
+					}
+
+					if (this.currentTask == null) {
+						if (this.currentSoftware != null) {
+							WTPart softwarePart = IntegrationUtil.getPartFromNumber(currentSoftware.getID());
+							WTPart taskPart = IntegrationUtil.getParent(softwarePart);
+							if (taskPart != null) {
+								this.currentTask = new Task(taskPart);
+							} else {
+								throw new Exception("ID为" + currentSoftware.getID() + "的专有软件的计算任务不存在.");
+							}
+						}
+					}
+
+					file.newDocument(parentNumber, currentTask, this.filePath, this.currentFolder);
 				}
+			} else {
+				throw new Exception("找不到名称为" + file.getName() + "的文档的父节点.");
 			}
 		}
 
@@ -85,7 +119,7 @@ public class Create {
 			Files files = project.getFiles();
 			if (files != null && files.getFiles() != null && !files.getFiles().isEmpty()) {
 				for (File projectFile : files.getFiles()) {
-					projectFile.newDocument(project.getID(), project, Constant.FOLDER_PROJECT);
+					projectFile.newDocument(project.getID(), project, this.filePath, Constant.FOLDER_PROJECT);
 				}
 			}
 			List<Task> tasks = project.getTasks();
@@ -109,7 +143,7 @@ public class Create {
 		Files files = task.getFiles();
 		if (files != null && files.getFiles() != null && !files.getFiles().isEmpty()) {
 			for (File taskFile : files.getFiles()) {
-				taskFile.newDocument(task.getID(), task, Constant.FOLDER_PROJECT);
+				taskFile.newDocument(task.getID(), task, this.filePath, Constant.FOLDER_PROJECT);
 			}
 		}
 		// 创建专有软件
@@ -143,7 +177,7 @@ public class Create {
 		List<File> paraFiles = para.getFiles();
 		if (paraFiles != null && !paraFiles.isEmpty()) {
 			for (File paraFile : paraFiles) {
-				paraFile.newDocument(para.getID(), currentTask, this.currentFolder);
+				paraFile.newDocument(para.getID(), currentTask, this.filePath, this.currentFolder);
 			}
 		}
 		para.endPara();

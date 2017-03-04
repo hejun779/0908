@@ -1,5 +1,6 @@
 package ext.caep.integration.util;
 
+import java.beans.PropertyVetoException;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
@@ -11,6 +12,7 @@ import java.io.InputStreamReader;
 import java.lang.reflect.InvocationTargetException;
 import java.rmi.RemoteException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -20,12 +22,12 @@ import java.util.Properties;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import com.google.common.io.Files;
 import com.ptc.core.meta.common.IdentifierFactory;
 import com.ptc.core.meta.common.TypeIdentifier;
 import com.ptc.core.meta.common.impl.TypeIdentifierUtilityHelper;
 import com.ptc.windchill.enterprise.team.server.TeamCCHelper;
 
+import ext.caep.integration.bean.Files;
 import ext.caep.integration.bean.Global;
 import ext.caep.integration.bean.Para;
 import ext.caep.integration.bean.Project;
@@ -62,7 +64,6 @@ import wt.part.WTPartUsageLink;
 import wt.pdmlink.PDMLinkProduct;
 import wt.pds.StatementSpec;
 import wt.pom.PersistenceException;
-import wt.query.QueryException;
 import wt.query.QuerySpec;
 import wt.query.SearchCondition;
 import wt.services.ServiceProviderHelper;
@@ -87,7 +88,7 @@ public class IntegrationUtil implements RemoteAccess {
 	private static String shareFilePath = null;
 	private static String shareFileHostUser = null;
 	private static String shareFileHostPassword = null;
-
+	private static List<String> softwares = new ArrayList<String>();
 	static {
 		try {
 			InputStream in = IntegrationUtil.class.getClassLoader().getResourceAsStream(proprFile);
@@ -99,6 +100,7 @@ public class IntegrationUtil implements RemoteAccess {
 			shareFilePath = prop.getProperty("shareFilePath");
 			shareFileHostUser = prop.getProperty("shareFileHostUser");
 			shareFileHostPassword = prop.getProperty("shareFileHostPassword");
+			softwares = Arrays.asList(prop.getProperty("softwares").split(","));
 			login(shareFileHost, shareFileHostUser, shareFileHostPassword);
 		} catch (IOException e) {
 			e.printStackTrace();
@@ -126,13 +128,17 @@ public class IntegrationUtil implements RemoteAccess {
 		return prop;
 	}
 
-	public static PDMLinkProduct getProduct() throws InvocationTargetException, IOException {
-		if (product == null) {
-			if (prop == null) {
-				getProperties();
-			}
-			String productName = prop.getProperty("product", "\u5149\u5b66\u8bbe\u8ba1\u4ea7\u54c1\u5e93");
-			try {
+	public static PDMLinkProduct getProduct() throws Exception {
+		WTPrincipal principal = null;
+		try {
+			principal = SessionHelper.manager.getPrincipal();
+			SessionHelper.manager.setAdministrator();
+			if (product == null) {
+				if (prop == null) {
+					getProperties();
+				}
+				String productName = prop.getProperty("product", "\u5149\u5b66\u8bbe\u8ba1\u4ea7\u54c1\u5e93");
+
 				QuerySpec spec = new QuerySpec(PDMLinkProduct.class);
 				SearchCondition sc = new SearchCondition(PDMLinkProduct.class, PDMLinkProduct.NAME, SearchCondition.EQUAL, productName);
 				spec.appendWhere(sc);
@@ -140,10 +146,16 @@ public class IntegrationUtil implements RemoteAccess {
 				if (qr.hasMoreElements()) {
 					product = (PDMLinkProduct) qr.nextElement();
 				}
-			} catch (QueryException e) {
-				e.printStackTrace();
-			} catch (WTException e) {
-				e.printStackTrace();
+			}
+
+			if (product == null) {
+				throw new Exception("没有创建专有产品库");
+			}
+		} catch (WTException e) {
+			e.printStackTrace();
+		} finally {
+			if (principal != null) {
+				SessionHelper.manager.setPrincipal(principal.getName());
 			}
 		}
 		return product;
@@ -171,18 +183,9 @@ public class IntegrationUtil implements RemoteAccess {
 		return filePath;
 	}
 
-	public static File createShareFile() throws Exception {
-		String userName = SessionHelper.manager.getPrincipal().getName();
-		File path = new File("\\\\" + shareFileHost + "\\" + shareFilePath + "\\" + userName);
-		path.mkdirs();
-		File file = new File(path, System.currentTimeMillis() + ".xml");
-		file.createNewFile();
-		return file;
-	}
-
-	public static File createShareFile(String fileName) throws Exception {
-		String userName = SessionHelper.manager.getPrincipal().getName();
-		File path = new File("\\\\" + shareFileHost + "\\" + shareFilePath + "\\" + userName);
+	public static File createShareFile(String pathPrefix, String fileName) throws Exception {
+		// String userName = SessionHelper.manager.getPrincipal().getName();
+		File path = new File("\\\\" + shareFileHost + "\\" + shareFilePath + "\\" + pathPrefix);
 		path.mkdirs();
 		File file = new File(path, fileName);
 		file.createNewFile();
@@ -230,18 +233,29 @@ public class IntegrationUtil implements RemoteAccess {
 
 	public static boolean isAdmin() throws WTException {
 		boolean result = false;
-		WTPrincipal principal = SessionHelper.manager.getPrincipal();
-		WTRoleHolder2 roleHolder2 = TeamCCHelper.getTeamFromObject(product);
-		HashMap map = TeamCCHelper.getMemberRoleHashMapFromTeam(roleHolder2);
-		Iterator it = map.entrySet().iterator();
-		while (it.hasNext()) {
-			Map.Entry entry = (Entry) it.next();
-			WTPrincipalReference user = (WTPrincipalReference) entry.getKey();
-			ArrayList roles = (ArrayList) entry.getValue();
-			for (Object o : roles) {
-				if (principal.getName().equals(user.getName()) && o.toString().equalsIgnoreCase("PROJECT ADMIN")) {
-					return true;
+		WTPrincipal principal = null;
+		try {
+			principal = SessionHelper.manager.getPrincipal();
+			SessionHelper.manager.setAdministrator();
+			WTRoleHolder2 roleHolder2 = TeamCCHelper.getTeamFromObject(product);
+			HashMap map = TeamCCHelper.getMemberRoleHashMapFromTeam(roleHolder2);
+			Iterator it = map.entrySet().iterator();
+			while (it.hasNext()) {
+				Map.Entry entry = (Entry) it.next();
+				WTPrincipalReference user = (WTPrincipalReference) entry.getKey();
+				ArrayList roles = (ArrayList) entry.getValue();
+				for (Object o : roles) {
+					if (principal.getName().equals(user.getName()) && o.toString().equalsIgnoreCase("PROJECT ADMIN")) {
+						// SessionHelper.manager.setPrincipal(principal.getName());
+						return true;
+					}
 				}
+			}
+		} catch (WTException e) {
+			throw e;
+		} finally {
+			if (principal != null) {
+				SessionHelper.manager.setPrincipal(principal.getName());
 			}
 		}
 		return result;
@@ -249,18 +263,30 @@ public class IntegrationUtil implements RemoteAccess {
 
 	public static boolean isMember() throws WTException {
 		boolean result = false;
-		WTPrincipal principal = SessionHelper.manager.getPrincipal();
-		WTRoleHolder2 roleHolder2 = TeamCCHelper.getTeamFromObject(product);
-		HashMap map = TeamCCHelper.getMemberRoleHashMapFromTeam(roleHolder2);
-		Iterator it = map.entrySet().iterator();
-		while (it.hasNext()) {
-			Map.Entry entry = (Entry) it.next();
-			WTPrincipalReference user = (WTPrincipalReference) entry.getKey();
-			ArrayList roles = (ArrayList) entry.getValue();
-			for (Object o : roles) {
-				if (principal.getName().equals(user.getName()) && o.toString().equalsIgnoreCase("OPTICAL ENGINEER")) {
-					return true;
+		WTPrincipal principal = null;
+		try {
+			principal = SessionHelper.manager.getPrincipal();
+			SessionHelper.manager.setAdministrator();
+			WTRoleHolder2 roleHolder2 = TeamCCHelper.getTeamFromObject(product);
+			HashMap map = TeamCCHelper.getMemberRoleHashMapFromTeam(roleHolder2);
+			Iterator it = map.entrySet().iterator();
+			while (it.hasNext()) {
+				Map.Entry entry = (Entry) it.next();
+				WTPrincipalReference user = (WTPrincipalReference) entry.getKey();
+				ArrayList roles = (ArrayList) entry.getValue();
+				for (Object o : roles) {
+					if (principal.getName().equals(user.getName()) && o.toString().equalsIgnoreCase("OPTICAL ENGINEER")) {
+						// SessionHelper.manager.setPrincipal(principal.getName());
+						return true;
+					}
 				}
+			}
+
+		} catch (WTException e) {
+			throw e;
+		} finally {
+			if (principal != null) {
+				SessionHelper.manager.setPrincipal(principal.getName());
 			}
 		}
 		return result;
@@ -392,12 +418,9 @@ public class IntegrationUtil implements RemoteAccess {
 			return parts;
 		} else {
 			for (WTPart part : parts) {
-				try {
-					if (part.getCreator().getName().equalsIgnoreCase(SessionHelper.getPrincipal().getName())) {
-						filtered.add(part);
-					}
-				} catch (WTException e) {
-					e.printStackTrace();
+
+				if (part.getCreator().getName().equalsIgnoreCase(SessionHelper.getPrincipal().getName())) {
+					filtered.add(part);
 				}
 			}
 		}
@@ -795,29 +818,40 @@ public class IntegrationUtil implements RemoteAccess {
 		}
 	}
 
-	public static boolean hasParent(WTPart part) {
+	public static void removePrimary(ContentHolder ctHolder) throws WTException, PropertyVetoException {
+		if (ctHolder != null) {
+			ctHolder = ContentServerHelper.service.updateHolderFormat((FormatContentHolder) ctHolder);
+			ContentItem primary = ContentHelper.getPrimary((FormatContentHolder) ctHolder);
+			if (primary != null) {
+				ContentServerHelper.service.deleteContent(ctHolder, primary);
+			}
+		}
+		if (ctHolder instanceof FormatContentHolder) {
+			ctHolder = ContentServerHelper.service.updateHolderFormat((FormatContentHolder) ctHolder);
+		}
+	}
+
+	public static boolean hasParent(WTPart part) throws WTException {
 		boolean result = false;
 		if (part != null) {
-			try {
-				QueryResult qr = WTPartHelper.service.getUsedByWTParts((WTPartMaster) part.getMaster());
-				if (qr.size() > 0) {
-					result = true;
-				}
-			} catch (WTException e) {
-				e.printStackTrace();
+			QueryResult qr = WTPartHelper.service.getUsedByWTParts((WTPartMaster) part.getMaster());
+			if (qr.size() > 0) {
+				result = true;
 			}
 		}
 		return result;
 	}
 
-	public static String downloadFile(WTDocument doc) throws Exception {
+	public static String downloadFile(WTDocument doc, Map<String, Object> parameters, String filePath, Object hierarchyIndex) throws Exception {
 		String path = "";
 		QueryResult primary = ContentHelper.service.getContentsByRole(doc, ContentRoleType.PRIMARY);
-		while (primary.hasMoreElements()) {
+		if (primary.hasMoreElements()) {
+			String pathPrefix = getPathPrefix(parameters, hierarchyIndex);
 			ApplicationData data = (ApplicationData) primary.nextElement();
 			String fullName = data.getFileName();
 			InputStream is = ContentServerHelper.service.findContentStream(data);
-			java.io.File contentFile = IntegrationUtil.createShareFile(fullName);
+			path = pathPrefix + File.separator + fullName;
+			java.io.File contentFile = IntegrationUtil.createShareFile(filePath + File.separator + pathPrefix, fullName);
 			FileOutputStream os = new FileOutputStream(contentFile);
 			byte buff[] = new byte[1024];
 			int len = 0;
@@ -826,7 +860,6 @@ public class IntegrationUtil implements RemoteAccess {
 			}
 			os.close();
 			is.close();
-			path = contentFile.getPath();
 		}
 		return path;
 	}
@@ -856,7 +889,7 @@ public class IntegrationUtil implements RemoteAccess {
 				cls = Files.class;
 				break;
 			} else if (line.contains("<FILE")) {
-				cls = File.class;
+				cls = ext.caep.integration.bean.File.class;
 				break;
 			}
 		}
@@ -880,7 +913,7 @@ public class IntegrationUtil implements RemoteAccess {
 				state = ((Software) node).getState();
 			} else if (node instanceof Para) {
 				state = ((Para) node).getState();
-			} else if (node instanceof File) {
+			} else if (node instanceof ext.caep.integration.bean.File) {
 				state = ((ext.caep.integration.bean.File) node).getState();
 			}
 		}
@@ -900,10 +933,202 @@ public class IntegrationUtil implements RemoteAccess {
 				ID = ((Software) node).getID();
 			} else if (node instanceof Para) {
 				ID = ((Para) node).getID();
-			} else if (node instanceof File) {
+			} else if (node instanceof ext.caep.integration.bean.File) {
 				ID = ((ext.caep.integration.bean.File) node).getID();
 			}
 		}
 		return ID;
+	}
+
+	public static String getContainerPath() {
+		String org = product.getOrganizationName();
+		String result = "/wt.inf.container.OrgContainer=" + org + "/wt.pdmlink.PDMLinkProduct=" + IntegrationUtil.getProperty("product");
+		return result;
+	}
+
+	/**
+	 * 判断文档是不是方案的附属文档
+	 * 
+	 * @param doc
+	 * @return
+	 * @throws WTException
+	 * @throws RemoteException
+	 */
+	public static boolean isProjectFile(WTDocument doc) throws WTException, RemoteException {
+		QueryResult qr = WTPartHelper.service.getDescribesWTParts(doc);
+		boolean result = false;
+		while (qr.hasMoreElements()) {
+			Persistable p = (Persistable) qr.nextElement();
+			if (p instanceof WTPart) {
+				if (isProject((WTPart) p)) {
+					break;
+				}
+			}
+		}
+		return result;
+	}
+
+	public static boolean isProject(WTPart part) throws RemoteException, WTException {
+		String type = getType(part);
+		if (type.contains(Constant.SOFTTYPE_PROJECT)) {
+			return true;
+		}
+		return false;
+	}
+
+	public static String getPathPrefix(Project project) throws Exception {
+		return project.getID();
+	}
+
+	public static String getPathPrefix(Task task) throws Exception {
+		String pathPrefix = "";
+		WTPart taskPart = getPartFromNumber(task.getID());
+		if (taskPart != null) {
+			WTPart projectPart = getParent(taskPart);
+			if (projectPart != null) {
+				pathPrefix = projectPart.getNumber() + "\\" + task.getID();
+			} else {
+				throw new Exception("找不到计算任务" + task.getID() + "所属的方案");
+			}
+		} else {
+			throw new Exception("ID为" + task.getID() + "的计算任务不存在");
+
+		}
+		return pathPrefix;
+	}
+
+	public static String getPathPrefix(Software software) throws Exception {
+		String pathPrefix = "";
+		WTPart softwarePart = getPartFromNumber(software.getID());
+		if (softwarePart != null) {
+			WTPart taskPart = getParent(softwarePart);
+			if (taskPart != null) {
+				pathPrefix = getPathPrefix(new Task(taskPart)) + "\\" + software.getName();
+			} else {
+				throw new Exception("找不到专有软件" + software.getID() + "所属的计算任务");
+			}
+		} else {
+			throw new Exception("ID为" + software.getID() + "的专有软件不存在");
+
+		}
+		return pathPrefix;
+	}
+
+	public static String getPathPrefix(Para para) throws Exception {
+		String pathPrefix = "";
+		WTPart paraPart = getPartFromNumber(para.getID());
+		if (paraPart != null) {
+			WTPart softwarePart = getParent(paraPart);
+			if (softwarePart != null) {
+				pathPrefix = getPathPrefix(new Software(softwarePart)) + "\\" + para.getID();
+			} else {
+				throw new Exception("找不到计算参数" + para.getID() + "所属的专有软件");
+			}
+		} else {
+			throw new Exception("ID为" + para.getID() + "的计算参数不存在");
+		}
+		return pathPrefix;
+	}
+
+	public static String getPathPrefix(ext.caep.integration.bean.File file) throws Exception {
+		WTDocument doc = getDocFromNumber(file.getID());
+		if (doc != null) {
+			return getPathPrefix(doc);
+		} else {
+			throw new Exception("ID为" + file.getID() + "的计算参数不存在");
+		}
+	}
+
+	public static String getPathPrefix(WTDocument doc) throws Exception {
+		String pathPrefix = "";
+		List<WTPart> parents = getParent(doc);
+		if (parents != null && parents.size() == 1) {
+			WTPart part = parents.get(0);
+			String type = getType(part);
+			if (type.contains(Constant.SOFTTYPE_PROJECT)) {
+				pathPrefix = part.getNumber();
+			} else if (type.contains(Constant.SOFTTYPE_TASK)) {
+				pathPrefix = getPathPrefix(new Task(part));
+			}
+		}
+		return pathPrefix;
+	}
+
+	public static List<WTPart> getParent(WTDocument doc) throws WTException {
+		List<WTPart> parents = new ArrayList<WTPart>();
+		QueryResult qr = WTPartHelper.service.getDescribesWTParts(doc);
+		while (qr.hasMoreElements()) {
+			Object obj = qr.nextElement();
+			if (obj instanceof WTPart) {
+				parents.add((WTPart) obj);
+			}
+		}
+		return parents;
+	}
+
+	public static WTPart getParent(WTPart part) throws WTException {
+		QueryResult qr = WTPartHelper.service.getUsedByWTParts((WTPartMaster) part.getMaster());
+		if (qr.hasMoreElements()) {
+			return (WTPart) qr.nextElement();
+		}
+		return null;
+	}
+
+	public static String getPathPrefix(Map<String, Object> parameters, Object hierarchyIndex) throws Exception {
+		String pathPrefix = "";
+
+		if (hierarchyIndex instanceof Project) {
+			Project project = (Project) hierarchyIndex;
+			pathPrefix = project.getID();
+		} else if (hierarchyIndex instanceof Task) {
+			Project project = null;
+			Task task = (Task) hierarchyIndex;
+			if (parameters.get("currentProject") != null) {
+				project = (Project) parameters.get("currentProject");
+				pathPrefix = project.getID() + "\\" + task.getID();
+			} else {
+				pathPrefix = getPathPrefix(task);
+			}
+		} else if (hierarchyIndex instanceof Software) {
+			Software software = (Software) hierarchyIndex;
+			if (parameters.get("currentProject") != null && parameters.get("currentTask") != null) {
+				Project project = (Project) parameters.get("currentProject");
+				Task task = (Task) parameters.get("currentTask");
+				pathPrefix = project.getID() + "\\" + task.getID() + "\\" + software.getName();
+			} else {
+				pathPrefix = getPathPrefix(software);
+			}
+		} else if (hierarchyIndex instanceof Para) {
+			Para para = (Para) hierarchyIndex;
+			if (parameters.get("currentProject") != null && parameters.get("currentTask") != null && parameters.get("currentSoftware") != null) {
+				Project project = (Project) parameters.get("currentProject");
+				Task task = (Task) parameters.get("currentTask");
+				Software software = (Software) parameters.get("currentSoftware");
+				pathPrefix = project.getID() + "\\" + task.getID() + "\\" + software.getName() + "\\" + para.getID();
+			} else {
+				pathPrefix = getPathPrefix(para);
+			}
+		} else if (hierarchyIndex instanceof ext.caep.integration.bean.File) {
+			ext.caep.integration.bean.File file = (ext.caep.integration.bean.File) hierarchyIndex;
+			WTDocument doc = getDocFromNumber(file.getID());
+			if (doc != null) {
+				if (!isIOFile(doc)) {
+					pathPrefix = getPathPrefix(doc);
+				}
+			} else {
+				throw new Exception("ID为" + file.getID() + "的文档不存在");
+			}
+
+		}
+		return pathPrefix;
+	}
+
+	public static boolean isLegalSoftware(String softwareName) {
+		return softwares.contains(softwareName);
+	}
+
+	public static boolean isIOFile(WTDocument doc) throws RemoteException, WTException {
+		String type = getType(doc);
+		return type.contains(Constant.SOFTTYPE_IOFILE);
 	}
 }

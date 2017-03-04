@@ -48,7 +48,8 @@ public class Task {
 		this.ID = task.getNumber();
 		this.state = "";
 		IBAUtil iba = new IBAUtil(task);
-		this.describe = iba.getIBAValue(Constant.ATTR_DESCRIBE);
+		String describe = iba.getIBAValue(Constant.ATTR_DESCRIBE);
+		this.describe = describe == null ? "" : describe;
 	}
 
 	@XmlAttribute(name = "name")
@@ -112,7 +113,7 @@ public class Task {
 			this.ID = number;
 			partAttrs.put("partNumber", number);
 			partAttrs.put("partName", this.name);
-			partAttrs.put("parentContainerPath", "/wt.inf.container.OrgContainer=ptc/wt.pdmlink.PDMLinkProduct=" + IntegrationUtil.getProperty("product"));
+			partAttrs.put("parentContainerPath", IntegrationUtil.getContainerPath());
 			partAttrs.put("type", "component");
 			partAttrs.put("typedef", Constant.SOFTTYPE_TASK);
 			partAttrs.put("source", "make");
@@ -124,9 +125,14 @@ public class Task {
 				partAttrs.put("definition", Constant.ATTR_DESCRIBE);
 				partAttrs.put("value1", this.describe);
 				LoadValue.createIBAValue(partAttrs, cmd_line, return_objects);
-				LoadValue.applySoftAttributes(LoadPart.getPart());
+				// LoadPart.getPart(pNumber, pVersion, pIteration, pView);
+				LoadValue.applySoftAttributes(LoadPart.getPart(number, null, null, null));
 			}
 			if (project != null && project.getID() != null && !project.getID().equals("")) {
+				WTPart projectPart = IntegrationUtil.getPartFromNumber(project.getID());
+				if (projectPart == null) {
+					throw new Exception("ID为" + project.getID() + "的方案不存在");
+				}
 				Hashtable assmAttrs = new Hashtable();
 				assmAttrs.put("assemblyPartNumber", project.getID());
 				assmAttrs.put("constituentPartNumber", this.ID);

@@ -1,12 +1,15 @@
 package ext.caep.integration.bean;
 
 import java.util.Hashtable;
+import java.util.Map;
 import java.util.Vector;
 
 import javax.xml.bind.annotation.XmlAccessType;
 import javax.xml.bind.annotation.XmlAccessorType;
 import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlRootElement;
+
+import org.apache.commons.lang.StringUtils;
 
 import ext.caep.integration.util.Constant;
 import ext.caep.integration.util.IBAUtil;
@@ -59,10 +62,12 @@ public class File {
 		this.path = "";
 		this.describe = doc.getDescription() == null ? "" : doc.getDescription();
 		IBAUtil iba = new IBAUtil(doc);
-
-		this.author = iba.getIBAValue(Constant.ATTR_CAEP_AUTHOR);
-		this.type = iba.getIBAValue(Constant.ATTR_CAEP_LXBS);
-		this.organ = iba.getIBAValue(Constant.ATTR_CAEP_ORGAN);
+		String author = iba.getIBAValue(Constant.ATTR_CAEP_AUTHOR);
+		String type = iba.getIBAValue(Constant.ATTR_CAEP_LXBS);
+		String organ = iba.getIBAValue(Constant.ATTR_CAEP_ORGAN);
+		this.author = author == null ? "" : author;
+		this.type = type == null ? "" : type;
+		this.organ = organ == null ? "" : organ;
 		this.state = "";
 	}
 
@@ -129,7 +134,7 @@ public class File {
 		this.type = type;
 	}
 
-	public void newDocument(String parentNumber, Object parent, String folder) throws Exception {
+	public void newDocument(String parentNumber, Object parent, String filePath, String folder) throws Exception {
 		if (this.ID == null || this.ID.equals("")) {
 			String number = NumberingUtil.getNumber(parent, this);
 			this.ID = number;
@@ -149,11 +154,11 @@ public class File {
 			} else {
 				docAttrs.put("typedef", Constant.SOFTTYPE_FILE);
 			}
-			docAttrs.put("parentContainerPath", "/wt.inf.container.OrgContainer=ptc/wt.pdmlink.PDMLinkProduct=" + IntegrationUtil.getProperty("product"));
+			docAttrs.put("parentContainerPath", IntegrationUtil.getContainerPath());
 			docAttrs.put("department", "DESIGN");
 			docAttrs.put("primarycontenttype", "ApplicationData");
 			if (this.path != null && this.path.length() > 0) {
-				String path = IntegrationUtil.getSharedFilePath(this.path);
+				String path = IntegrationUtil.getSharedFilePath(filePath + java.io.File.separator + this.path);
 				docAttrs.put("path", path);
 			}
 
@@ -196,10 +201,32 @@ public class File {
 		LoadPart.createPartDocDescribes(linkAttrs, cmd_line, return_objects);
 	}
 
-	public void download() throws Exception {
+	/**
+	 * 
+	 * @param parameters
+	 * @param filePath
+	 *            username/timestamp
+	 * @param hierarchyIndex
+	 * @throws Exception
+	 */
+	public void download(Map<String, Object> parameters, String filePath, Object hierarchyIndex) throws Exception {
 		WTDocument doc = IntegrationUtil.getDocFromNumber(this.ID);
-		String filePath = IntegrationUtil.downloadFile(doc);
-		this.path = filePath;
-		this.state = "";
+		if (doc != null) {
+			String path = IntegrationUtil.downloadFile(doc, parameters, filePath, hierarchyIndex);
+			this.path = path;
+			this.state = "";
+			this.name = doc.getName();
+			this.describe = doc.getDescription() == null ? "" : doc.getDescription();
+			IBAUtil iba = new IBAUtil(doc);
+			String organ = StringUtils.trimToEmpty(iba.getIBAValue(Constant.ATTR_CAEP_ORGAN));
+			String type = StringUtils.trimToEmpty(iba.getIBAValue(Constant.ATTR_CAEP_LXBS));
+			String author = StringUtils.trimToEmpty(iba.getIBAValue(Constant.ATTR_CAEP_AUTHOR));
+			this.organ = organ;
+			this.type = type;
+			this.author = author;
+		} else {
+			throw new Exception("下载失败,ID为" + this.getID() + "的文档不存在");
+		}
+
 	}
 }

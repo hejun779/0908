@@ -1,14 +1,11 @@
 package ext.caep.integration.util;
 
 import java.io.File;
-import java.io.StringReader;
 
 import javax.xml.bind.JAXBContext;
 import javax.xml.bind.JAXBException;
 import javax.xml.bind.Marshaller;
 import javax.xml.bind.Unmarshaller;
-
-import org.jdom.Element;
 
 import ext.caep.integration.bean.Files;
 import ext.caep.integration.bean.Global;
@@ -19,54 +16,15 @@ import ext.caep.integration.bean.Task;
 
 public class JaxbUtil {
 
-	public static void main(String[] args) {
-
-	}
-
 	/**
 	 * 将XML文件的内容转换成Java对象
 	 * 
 	 * @param xmlFile
 	 * @param root
 	 * @return
-	 * @throws JAXBException
+	 * @throws Exception
 	 */
-	public static Object xml2Object(Element root) throws JAXBException {
-		Object result = null;
-		if (root != null) {
-			Class cls = null;
-			if (root.getName().equalsIgnoreCase(Constant.GLOBAL)) {
-				cls = Global.class;
-			} else if (root.getName().equalsIgnoreCase(Constant.PROJECT)) {
-				cls = Project.class;
-			} else if (root.getName().equalsIgnoreCase(Constant.TASK)) {
-				cls = Task.class;
-			} else if (root.getName().equalsIgnoreCase(Constant.SOFTWARE)) {
-				cls = Software.class;
-			} else if (root.getName().equalsIgnoreCase(Constant.PARA)) {
-				cls = Para.class;
-			} else if (root.getName().equalsIgnoreCase(Constant.FILE)) {
-				cls = ext.caep.integration.bean.File.class;
-			} else if (root.getName().equals(Constant.FILES)) {
-				cls = Files.class;
-			}
-			JAXBContext context = JAXBContext.newInstance(cls);
-			Unmarshaller unmarshaller = context.createUnmarshaller();
-			String rootContent = XMLUtil.outputString(root);
-			StringReader reader = new StringReader(rootContent);
-			result = unmarshaller.unmarshal(reader);
-		}
-		return result;
-	}
-
-	/**
-	 * 将XML文件的内容转换成Java对象
-	 * 
-	 * @param xmlFile
-	 * @param root
-	 * @return
-	 */
-	public static Object xml2Object(File xmlFile, Class rootCls) {
+	public static Object xml2Object(File xmlFile, Class rootCls) throws Exception {
 		Object result = null;
 		if (rootCls != null) {
 			try {
@@ -74,7 +32,7 @@ public class JaxbUtil {
 				Unmarshaller unmarshaller = context.createUnmarshaller();
 				result = unmarshaller.unmarshal(xmlFile);
 			} catch (JAXBException e) {
-				e.printStackTrace();
+				throw new Exception("输入XML文件格式错误");
 			}
 		}
 		return result;
@@ -85,8 +43,9 @@ public class JaxbUtil {
 	 * 
 	 * @param obj
 	 * @param output
+	 * @throws Exception
 	 */
-	public static void object2xml(Object obj, File output) {
+	public static void object2xml(Object obj, File output) throws Exception {
 		if (obj != null) {
 			Class cls = null;
 			if (obj instanceof Global) {
@@ -99,7 +58,7 @@ public class JaxbUtil {
 				cls = Software.class;
 			} else if (obj instanceof Para) {
 				cls = Para.class;
-			} else if (obj instanceof File) {
+			} else if (obj instanceof ext.caep.integration.bean.File) {
 				cls = ext.caep.integration.bean.File.class;
 			} else if (obj instanceof Files) {
 				cls = Files.class;
@@ -110,7 +69,7 @@ public class JaxbUtil {
 				marshaller.setProperty(Marshaller.JAXB_FORMATTED_OUTPUT, true);
 				marshaller.marshal(obj, output);
 			} catch (JAXBException e) {
-				e.printStackTrace();
+				throw new Exception("输出XML转化异常");
 			}
 		}
 	}

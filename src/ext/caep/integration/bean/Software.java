@@ -81,12 +81,15 @@ public class Software {
 
 	public void newSoftware(String parentNumber) throws Exception {
 		if (this.ID == null || this.ID.equals("")) {
+			if (!IntegrationUtil.isLegalSoftware(this.getName())) {
+				throw new Exception("不支持名称为" + this.getName() + "专有软件");
+			}
 			this.create = true;
-			String number = NumberingUtil.getNumber(null, this);// TODO
+			String number = NumberingUtil.getNumber(null, this);
 			this.ID = number;
 			partAttrs.put("partNumber", number);
 			partAttrs.put("partName", this.name);
-			partAttrs.put("parentContainerPath", "/wt.inf.container.OrgContainer=ptc/wt.pdmlink.PDMLinkProduct=" + IntegrationUtil.getProperty("product"));
+			partAttrs.put("parentContainerPath", IntegrationUtil.getContainerPath());
 			partAttrs.put("type", "component");
 			partAttrs.put("typedef", Constant.SOFTTYPE_SOFTWARE);
 			partAttrs.put("source", "make");

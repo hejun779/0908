@@ -1,7 +1,11 @@
 package ext.caep.integration.process;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+
+import org.apache.commons.lang.StringUtils;
 
 import ext.caep.integration.bean.File;
 import ext.caep.integration.bean.Files;
@@ -10,6 +14,8 @@ import ext.caep.integration.bean.Para;
 import ext.caep.integration.bean.Project;
 import ext.caep.integration.bean.Software;
 import ext.caep.integration.bean.Task;
+import ext.caep.integration.util.Constant;
+import ext.caep.integration.util.IBAUtil;
 import ext.caep.integration.util.IntegrationUtil;
 import wt.doc.WTDocument;
 import wt.part.WTPart;
@@ -20,7 +26,17 @@ import wt.part.WTPart;
  *
  */
 public class Download {
-	public static Object process(Object root) throws Exception {
+	private Map<String, Object> parameters = new HashMap<String, Object>();
+	private String filePath;
+
+	public Download(Map<String, Object> parameters) {
+		if (parameters != null) {
+			this.parameters = parameters;
+			this.filePath = (String) parameters.get("filePath");
+		}
+	}
+
+	public Object process(Object root) throws Exception {
 		if (root instanceof Global) {
 			downloadGlobal((Global) root);
 		} else if (root instanceof Project) {
@@ -32,12 +48,12 @@ public class Download {
 		} else if (root instanceof Para) {
 			downloadPara((Para) root);
 		} else if (root instanceof File) {
-			((File) root).download();
+			((File) root).download(this.parameters, this.filePath, root);
 		}
 		return root;
 	}
 
-	private static void downloadGlobal(Global global) throws Exception {
+	private void downloadGlobal(Global global) throws Exception {
 		List<Project> projects = global.getProjects();
 		if (projects != null && !projects.isEmpty()) {
 			for (Project project : projects) {
@@ -57,16 +73,22 @@ public class Download {
 		}
 	}
 
-	private static void downloadProject(Project project) throws Exception {
+	private void downloadProject(Project project) throws Exception {
 		WTPart projectPart = IntegrationUtil.getPartFromNumber(project.getID());
 		if (projectPart != null) {
+			this.parameters.put("currentProject", project);
+			project.setName(projectPart.getName());
+			project.setState("");
+			IBAUtil iba = new IBAUtil(projectPart);
+			String describe = StringUtils.trimToEmpty(iba.getIBAValue(Constant.ATTR_DESCRIBE));
+			project.setDescribe(describe);
 			Files files = project.getFiles();
 			if (files != null && files.getFiles() != null && !files.getFiles().isEmpty()) {
 				for (File file : files.getFiles()) {
-					file.download();
+					file.download(this.parameters, filePath, project);
 				}
 			} else {
-				List<File> allFiles = downloadAllFileForPart(projectPart);
+				List<File> allFiles = downloadAllFileForPart(projectPart, project);
 				if (allFiles != null && !allFiles.isEmpty()) {
 					Files newFiles = new Files();
 					newFiles.setFiles(allFiles);
@@ -93,20 +115,28 @@ public class Download {
 					project.setTasks(tasks);
 				}
 			}
+		} else {
+			throw new Exception("ID为" + project.getID() + "的方案不存在");
 		}
 	}
 
-	private static void downloadTask(Task task) throws Exception {
+	private void downloadTask(Task task) throws Exception {
 		WTPart taskPart = IntegrationUtil.getPartFromNumber(task.getID());
 		if (taskPart != null) {
+			this.parameters.put("currentTask", task);
+			task.setState("");
+			IBAUtil iba = new IBAUtil(taskPart);
+			String describe = StringUtils.trimToEmpty(iba.getIBAValue(Constant.ATTR_DESCRIBE));
+			task.setDescribe(describe);
+			task.setName(taskPart.getName());
 			Files files = task.getFiles();
 			if (files != null && files.getFiles() != null && !files.getFiles().isEmpty()) {
 				List<File> fileList = files.getFiles();
 				for (File file : fileList) {
-					file.download();
+					file.download(this.parameters, filePath, task);
 				}
 			} else {
-				List<File> allFiles = downloadAllFileForPart(taskPart);
+				List<File> allFiles = downloadAllFileForPart(taskPart, task);
 				if (allFiles != null && !allFiles.isEmpty()) {
 					Files newFiles = new Files();
 					newFiles.setFiles(allFiles);
@@ -130,10 +160,12 @@ public class Download {
 					task.setSoftwares(allSoftwares);
 				}
 			}
+		} else {
+			throw new Exception("ID为" + task.getID() + "的计算任务不存在");
 		}
 	}
 
-	private static void downloadSoftware(Software software) throws Exception {
+	private void downloadSoftware(Software software) throws Exception {
 		List<Para> paras = software.getParas();
 		if (paras != null && !paras.isEmpty()) {
 			for (Para para : paras) {
@@ -142,6 +174,9 @@ public class Download {
 		} else {
 			WTPart softwarePart = IntegrationUtil.getPartFromNumber(software.getID());
 			if (softwarePart != null) {
+				this.parameters.put("currentSoftware", software);
+				software.setState("");
+				software.setName(softwarePart.getName());
 				List<WTPart> allParas = IntegrationUtil.getChildren(softwarePart);
 				if (allParas != null && !allParas.isEmpty()) {
 					paras = new ArrayList<Para>();
@@ -152,30 +187,39 @@ public class Download {
 					}
 					software.setParas(paras);
 				}
+			} else {
+				throw new Exception("ID为" + software.getID() + "的专有软件不存在");
 			}
 		}
 	}
 
-	private static void downloadPara(Para para) throws Exception {
+	private void downloadPara(Para para) throws Exception {
 		List<File> files = para.getFiles();
 		if (files != null && !files.isEmpty()) {
 			for (File file : files) {
-				file.download();
+				file.download(this.parameters, filePath, para);
 			}
 		} else {
 			WTPart paraPart = IntegrationUtil.getPartFromNumber(para.getID());
-			List<File> allFiles = downloadAllFileForPart(paraPart);
-			para.setFiles(allFiles);
+			if (paraPart != null) {
+				this.parameters.put("currentPara", para);
+				para.setState("");
+				para.setName(paraPart.getName());
+				List<File> allFiles = downloadAllFileForPart(paraPart, para);
+				para.setFiles(allFiles);
+			} else {
+				throw new Exception("ID为" + para.getID() + "的计算参数不存在");
+			}
 		}
 	}
 
-	private static List<File> downloadAllFileForPart(WTPart part) throws Exception {
+	private List<File> downloadAllFileForPart(WTPart part, Object hierarchyIndex) throws Exception {
 		List<File> files = new ArrayList<File>();
 		List<WTDocument> docs = IntegrationUtil.getDescribeDoc(part);
 		if (docs != null && !docs.isEmpty()) {
 			for (WTDocument doc : docs) {
 				File file = new File(doc);
-				file.download();
+				file.download(this.parameters, this.filePath, hierarchyIndex);
 				files.add(file);
 			}
 		}

@@ -20,7 +20,7 @@ import wt.util.WTException;
 
 @ComponentBuilder("caep.integration.filesTable")
 public class FileTableBuilder extends AbstractComponentBuilder {
-	private static final String RESOURCE = "ext.caep.integration.resourcce.IntegrationResource";
+	private static final String RESOURCE = "ext.caep.integration.resource.IntegrationResource";
 
 	@Override
 	public Object buildComponentData(ComponentConfig arg0, ComponentParams arg1) throws Exception {

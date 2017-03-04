@@ -1,6 +1,7 @@
 package ext.caep.integration.process;
 
 import java.util.Hashtable;
+import java.util.Map;
 import java.util.Vector;
 
 import org.apache.commons.lang.StringUtils;
@@ -19,11 +20,16 @@ import wt.iba.value.service.LoadValue;
 import wt.part.LoadPart;
 import wt.part.WTPart;
 import wt.pom.Transaction;
-import wt.util.WTException;
-import wt.util.WTPropertyVetoException;
 
 public class Update {
-	public static Object process(Object root) throws Exception {
+	private String filePath;
+
+	public Update(Map<String, Object> parameters) {
+		this.filePath = (String) parameters.get("filePath");
+	}
+
+	public Object process(Object root) throws Exception {
+
 		if (root instanceof Project) {
 			updateProject((Project) root);
 		} else if (root instanceof Task) {
@@ -38,9 +44,12 @@ public class Update {
 		return root;
 	}
 
-	private static void updateProject(Project project) throws WTPropertyVetoException, WTException {
+	private void updateProject(Project project) throws Exception {
 		WTPart part = IntegrationUtil.getPartFromNumber(project.getID());
 		if (part != null) {
+			if (!IntegrationUtil.isAdmin()) {
+				throw new Exception("非方案管理员不能修改方案(ID:" + project.getID() + ")");
+			}
 			if (!part.getName().equals(project.getName())) {
 				IntegrationUtil.updateName(part, project.getName());
 			}
@@ -49,16 +58,17 @@ public class Update {
 			Hashtable cmd_line = new Hashtable();
 			Hashtable partAttrs = new Hashtable();
 			partAttrs.put("partNumber", project.getID());
-			partAttrs.put("parentContainerPath", "/wt.inf.container.OrgContainer=ptc/wt.pdmlink.PDMLinkProduct=" + IntegrationUtil.getProperty("product"));
+			partAttrs.put("parentContainerPath", IntegrationUtil.getContainerPath());
 			partAttrs.put("type", "component");
 			partAttrs.put("source", "make");
 			partAttrs.put("folder", "/Default/" + Constant.FOLDER_PROJECT);
 
 			LoadPart.beginCreateOrUpdateWTPart(partAttrs, cmd_line, return_objects);
 
-			partAttrs.put("definition", Constant.ATTR_CAEP_GX);
-			partAttrs.put("value1", project.getType() == null ? "" : project.getType());
-			LoadValue.createIBAValue(partAttrs, cmd_line, return_objects);
+			// partAttrs.put("definition", Constant.ATTR_CAEP_GX);
+			// partAttrs.put("value1", project.getType() == null ? "" :
+			// project.getType());
+			// LoadValue.createIBAValue(partAttrs, cmd_line, return_objects);
 
 			partAttrs.put("definition", Constant.ATTR_DESCRIBE);
 			partAttrs.put("value1", project.getDescribe() == null ? "" : project.getDescribe());
@@ -67,12 +77,17 @@ public class Update {
 			LoadPart.endCreateOrUpdateWTPart(partAttrs, cmd_line, return_objects);
 
 			project.setState("");
+		} else {
+			throw new Exception("ID为" + project.getID() + "的方案不存在");
 		}
 	}
 
-	private static void updateTask(Task task) throws WTException, WTPropertyVetoException {
+	private void updateTask(Task task) throws Exception {
 		WTPart part = IntegrationUtil.getPartFromNumber(task.getID());
 		if (part != null) {
+			if (!IntegrationUtil.isOwn(part) && !IntegrationUtil.isAdmin()) {
+				throw new Exception("非方案管理员不能修改别人的计算任务(ID:" + task.getID() + ")");
+			}
 			if (!part.getName().equals(task.getName())) {
 				IntegrationUtil.updateName(part, task.getName());
 			}
@@ -80,7 +95,7 @@ public class Update {
 			Hashtable cmd_line = new Hashtable();
 			Hashtable partAttrs = new Hashtable();
 			partAttrs.put("partNumber", task.getID());
-			partAttrs.put("parentContainerPath", "/wt.inf.container.OrgContainer=ptc/wt.pdmlink.PDMLinkProduct=" + IntegrationUtil.getProperty("product"));
+			partAttrs.put("parentContainerPath", IntegrationUtil.getContainerPath());
 			partAttrs.put("type", "component");
 			partAttrs.put("source", "make");
 			partAttrs.put("folder", "/Default/" + Constant.FOLDER_PROJECT);
@@ -93,32 +108,50 @@ public class Update {
 
 			LoadPart.endCreateOrUpdateWTPart(partAttrs, cmd_line, return_objects);
 			task.setState("");
+		} else {
+			throw new Exception("ID为" + task.getID() + "的计算任务不存在");
 		}
 	}
 
-	private static void updateSoftware(Software software) throws WTPropertyVetoException, WTException {
+	private void updateSoftware(Software software) throws Exception {
 		WTPart part = IntegrationUtil.getPartFromNumber(software.getID());
 		if (part != null) {
+			if (!IntegrationUtil.isOwn(part) && !IntegrationUtil.isAdmin()) {
+				throw new Exception("非方案管理员不能修改别人的专有软件(ID:" + software.getID() + ")");
+			}
 			if (!part.getName().equals(software.getName())) {
 				IntegrationUtil.updateName(part, software.getName());
 			}
 			software.setState("");
+		} else {
+			throw new Exception("ID为" + software.getID() + "的专有软件不存在");
 		}
 	}
 
-	private static void updatePara(Para para) throws WTException, WTPropertyVetoException {
+	private void updatePara(Para para) throws Exception {
 		WTPart part = IntegrationUtil.getPartFromNumber(para.getID());
 		if (part != null) {
+			if (!IntegrationUtil.isOwn(part) && !IntegrationUtil.isAdmin()) {
+				throw new Exception("非方案管理员不能修改别人的计算参数(ID:" + para.getID() + ")");
+			}
 			if (!part.getName().equals(para.getName())) {
 				IntegrationUtil.updateName(part, para.getName());
 			}
 			para.setState("");
+		} else {
+			throw new Exception("ID为" + para.getID() + "的计算参数不存在");
 		}
 	}
 
-	private static void updateFile(File file) throws Exception {
+	private void updateFile(File file) throws Exception {
 		WTDocument doc = IntegrationUtil.getDocFromNumber(file.getID());
 		if (doc != null) {
+			if (IntegrationUtil.isProjectFile(doc) && !IntegrationUtil.isAdmin()) {
+				throw new Exception("非方案管理员不能修改方案附属文件(ID:" + file.getID() + ")");
+			}
+			if (!IntegrationUtil.isAdmin() && !IntegrationUtil.isOwn(doc)) {
+				throw new Exception("非方案管理员不能修改别人的的文档(ID:" + file.getID() + ")");
+			}
 			if (!doc.getName().equals(file.getName())) {
 				IntegrationUtil.updateName(doc, file.getName());
 			}
@@ -127,13 +160,18 @@ public class Update {
 				trx = new Transaction();
 				trx.start();
 				doc = (WTDocument) IntegrationUtil.checkout(doc);
-				doc.setDescription(file.getDescribe() == null ? "" : file.getDescribe());
-				doc = (WTDocument) IBAUtil.updateIBAValue(doc, Constant.ATTR_CAEP_LXBS, StringUtils.trimToEmpty(file.getType()));
+				doc.setDescription(StringUtils.trimToEmpty(file.getDescribe()));
+				if (file.getType() == null || file.getType().length() == 0) {
+					throw new Exception("ID为" + file.getID() + "的类型标识不能为空");
+				}
+				doc = (WTDocument) IBAUtil.updateIBAValue(doc, Constant.ATTR_CAEP_LXBS, file.getType());
 				doc = (WTDocument) IBAUtil.updateIBAValue(doc, Constant.ATTR_CAEP_ORGAN, StringUtils.trimToEmpty(file.getOrgan()));
 				doc = (WTDocument) IBAUtil.updateIBAValue(doc, Constant.ATTR_CAEP_AUTHOR, StringUtils.trimToEmpty(file.getAuthor()));
 				if (file.getPath() != null && !file.getPath().equals("")) {
-					String filePath = IntegrationUtil.getSharedFilePath(file.getPath());
+					String filePath = IntegrationUtil.getSharedFilePath(this.filePath + java.io.File.separator + file.getPath());
 					IntegrationUtil.uploadContent(doc, filePath, ContentRoleType.PRIMARY);
+				} else {
+					IntegrationUtil.removePrimary(doc);
 				}
 				IntegrationUtil.checkin(doc);
 				file.setPath("");
@@ -141,11 +179,14 @@ public class Update {
 				trx.commit();
 				trx = null;
 			} catch (Exception e) {
+				throw new Exception(e.getMessage());
+			} finally {
 				if (trx != null) {
 					trx.rollback();
 				}
-				throw new Exception(e.getMessage());
 			}
+		} else {
+			throw new Exception("ID为" + file.getID() + "的文档不存在");
 		}
 	}
 }

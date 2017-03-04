@@ -135,7 +135,7 @@ public class NumberingUtil {
 		String value2 = props.get(PROP_TASK);
 		String value3 = props.get(PROP_FILE_TYPE);
 		if (value3 == null || value3.length() == 0) {
-			throw new Exception("Failed to get the filetype property");
+			throw new Exception("Failed to get the file type property");
 		}
 		if (value1 != null && value1.length() > 0) {
 			value1 = value1 + "-" + value3;
@@ -152,7 +152,7 @@ public class NumberingUtil {
 				throw new Exception("Failed to get the Separator from Task Id");
 			}
 		} else {
-			throw new Exception("Failed to get thw Project ID or Task ID");
+			throw new Exception("Failed to get the Project ID or Task ID");
 		}
 		return value;
 	}

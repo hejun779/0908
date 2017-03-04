@@ -21,6 +21,7 @@ import wt.fc.PersistenceServerHelper;
 import wt.fc.QueryResult;
 import wt.fc.collections.WTCollection;
 import wt.fc.collections.WTHashSet;
+import wt.fc.collections.WTSet;
 import wt.part.WTPart;
 import wt.part.WTPartDescribeLink;
 import wt.part.WTPartHelper;
@@ -33,6 +34,7 @@ import wt.query.SearchCondition;
 import wt.util.WTAttributeNameIfc;
 import wt.util.WTException;
 import wt.vc.VersionControlHelper;
+import wt.vc.struct.StructHelper;
 
 public class Delete {
 	private Global currentGlobal;
@@ -42,12 +44,15 @@ public class Delete {
 	private Object currentParent;// XML节点中的父节点
 	String parentNumber;// Windchill DB中的父节点
 
-	public void process(Map<String, Object> parameters, Object root) throws Exception {
+	public Delete(Map<String, Object> parameters) {
 		this.currentGlobal = (Global) parameters.get("currentGlobal");
 		this.currentProject = (Project) parameters.get("currentProject");
 		this.currentTask = (Task) parameters.get("currentTask");
 		this.currentSoftware = (Software) parameters.get("currentSoftware");
 		this.parentNumber = (String) parameters.get("parentNumber");
+	}
+
+	public void process(Object root) throws Exception {
 		if (root instanceof Global) {
 			deleteGlobal((Global) root);
 		} else if (root instanceof Project) {
@@ -81,19 +86,26 @@ public class Delete {
 		boolean hasTask = IntegrationUtil.hasTask(project);
 		currentProject = new Project(project);
 		if (!hasTask && isAdmin) {
-			deleteDocFromPart(project);
+			deleteDocFromPart(null, project);
 			delete(project);
 			if (currentGlobal != null) {
 				currentGlobal.removeProject(project.getNumber());
 			}
 		} else if (hasTask && isMember) {
 			List<WTPart> tasksForMe = IntegrationUtil.filter(IntegrationUtil.getChildren(project));
-			for (WTPart taskPart : tasksForMe) {
-				deleteTask(taskPart);
+			if (tasksForMe != null && !tasksForMe.isEmpty()) {
+				for (WTPart taskPart : tasksForMe) {
+					deleteTask(taskPart);
+				}
+			} else {
+				throw new Exception("ID为" + project.getNumber() + "的方案下没有你创建的计算任务可供删除");
 			}
 		} else if (isAdmin && hasTask) {
-			throw new Exception("方案管理员不能删除有计算任务的方案");
+			throw new Exception("方案管理员不能删除有计算任务的方案(ID:" + project.getNumber());
+		} else if (!hasTask && isMember) {
+			throw new Exception("ID为" + project.getNumber() + "的方案下没有你创建的计算任务可供删除");
 		}
+
 	}
 
 	private void deleteAllProject() throws Exception {
@@ -108,18 +120,20 @@ public class Delete {
 		if (projectPart != null) {
 			deleteProject(projectPart);
 			currentProject = project;
+		} else {
+			throw new Exception("ID为" + project.getID() + "的方案不存在");
 		}
 	}
 
 	private void deleteTask(WTPart task) throws Exception {
 		List<WTPart> softwares = IntegrationUtil.getChildren(task);
 		currentTask = new Task(task);
-		deleteDocFromPart(task);
+		deleteDocFromPart(null, task);
 		if (currentProject != null) {
 			WTPart project = IntegrationUtil.getPartFromNumber(currentProject.getID());
 			deletePartFromPart(task, project);
 		} else {
-			delete(task);
+			deletePartFromPart(task, null);
 		}
 		for (WTPart software : softwares) {
 			deleteSoftware(software);
@@ -137,6 +151,8 @@ public class Delete {
 			} else {
 				throw new Exception("不能删除别人的计算任务");
 			}
+		} else {
+			throw new Exception("ID为" + task.getID() + "的计算任务不存在");
 		}
 	}
 
@@ -148,7 +164,7 @@ public class Delete {
 			WTPart task = IntegrationUtil.getPartFromNumber(currentTask.getID());
 			deletePartFromPart(software, task);
 		} else {
-			delete(software);
+			deletePartFromPart(software, null);
 		}
 		if (paras != null && !paras.isEmpty()) {
 			for (WTPart para : paras) {
@@ -166,17 +182,19 @@ public class Delete {
 			} else {
 				throw new Exception("不能删除别人的专有软件");
 			}
+		} else {
+			throw new Exception("ID为" + software.getID() + "的专有软件不存在");
 		}
 	}
 
 	private void deletePara(WTPart para) throws Exception {
-		deleteDocFromPart(para);
+		deleteDocFromPart(null, para);
 		if (currentSoftware != null) {
 			currentSoftware.removePara(para.getNumber());
 			WTPart software = IntegrationUtil.getPartFromNumber(currentSoftware.getID());
 			deletePartFromPart(para, software);
 		} else {
-			delete(para);
+			deletePartFromPart(para, null);
 		}
 	}
 
@@ -188,14 +206,20 @@ public class Delete {
 			} else {
 				throw new Exception("不能删除别人的计算参数");
 			}
+		} else {
+			throw new Exception("ID为" + para.getID() + "的计算参数不存在");
 		}
 	}
 
 	private void deleteFile(File file) throws Exception {
 		WTDocument doc = IntegrationUtil.getDocFromNumber(file.getID());
-		WTPart parentPart = IntegrationUtil.getPartFromNumber(parentNumber);
+		WTPart parentPart = null;
+		if (parentNumber != null) {
+			parentPart = IntegrationUtil.getPartFromNumber(parentNumber);
+		}
 		if (doc != null && IntegrationUtil.isOwn(doc)) {
 			deleteDocFromPart(doc, parentPart);
+			// deleteDocOfPart(doc, parentPart);
 			if (currentParent != null) {
 				if (currentParent instanceof Files) {
 					Files files = (Files) currentParent;
@@ -207,12 +231,15 @@ public class Delete {
 			}
 		} else if (doc != null) {
 			throw new Exception("只能删除自己创建的文档");
+		} else {
+			throw new Exception("ID为" + file.getID() + "的文档不存在");
 		}
 	}
 
 	private void delete(WTPart part) throws Exception {
 		if (part != null) {
-			PersistenceHelper.manager.delete(part);
+			// PersistenceHelper.manager.delete(part);
+			deletePartFromPart(part, null);
 		} else {
 			throw new Exception("对象已经被删除");
 		}
@@ -250,46 +277,63 @@ public class Delete {
 	}
 
 	private void deleteDocFromPart(WTDocument deleteDoc, WTPart part) throws WTException {
-		QueryResult all = VersionControlHelper.service.allIterationsOf(deleteDoc.getMaster());
-		while (all.hasMoreElements()) {
-			WTDocument doc = (WTDocument) all.nextElement();
-			QueryResult qr = WTPartHelper.service.getDescribesWTParts(doc, false);
-			if (qr.size() > 0) {
+		WTSet allDescribeParts = new WTHashSet();
+		WTSet allDescribeDocs = new WTHashSet();
+		if (deleteDoc == null) {
+			allDescribeParts.add(part);
+		} else {
+			QueryResult all = VersionControlHelper.service.allIterationsOf(deleteDoc.getMaster());
+			while (all.hasMoreElements()) {
+				WTDocument doc = (WTDocument) all.nextElement();
+				QueryResult qr = WTPartHelper.service.getDescribesWTParts(doc, false);
+				if (qr.size() > 0) {
+					while (qr.hasMoreElements()) {
+						WTPartDescribeLink link = (WTPartDescribeLink) qr.nextElement();
+						WTPart describePart = link.getDescribes();
+						if (part != null) {
+							if (describePart.getNumber().equalsIgnoreCase(part.getNumber())) {
+								PersistenceServerHelper.manager.remove(link);
+								allDescribeParts.add(part);
+							}
+						} else {
+							allDescribeParts.add(describePart);
+							PersistenceServerHelper.manager.remove(link);
+						}
+					}
+				}
+			}
+			allDescribeDocs.add(deleteDoc);
+		}
+		Iterator itParts = allDescribeParts.persistableIterator();
+		while (itParts.hasNext()) {
+			WTPart describePart = (WTPart) itParts.next();
+			QueryResult allversion = VersionControlHelper.service.allIterationsOf(describePart.getMaster());
+			while (allversion.hasMoreElements()) {
+				WTPart version = (WTPart) allversion.nextElement();
+				@SuppressWarnings("deprecation")
+				QueryResult qr = StructHelper.service.navigateDescribedBy(version, WTPartDescribeLink.class, false);
 				while (qr.hasMoreElements()) {
 					WTPartDescribeLink link = (WTPartDescribeLink) qr.nextElement();
-					WTPart describePart = link.getDescribes();
-					if (part != null) {
-						if (describePart.getNumber().equalsIgnoreCase(part.getNumber())) {
+					WTDocument describeDoc = link.getDescribedBy();
+					if (deleteDoc != null) {
+						if (deleteDoc.getNumber().equalsIgnoreCase(describeDoc.getNumber())) {
 							PersistenceServerHelper.manager.remove(link);
 						}
 					} else {
 						PersistenceServerHelper.manager.remove(link);
+						allDescribeDocs.add(describeDoc);
+
 					}
 				}
 			}
 		}
-		if (!IntegrationUtil.hasDescribePart(deleteDoc) && IntegrationUtil.isOwn(deleteDoc)) {
-			PersistenceHelper.manager.delete(deleteDoc);
-		}
-	}
-
-	private void deleteDocFromPart(WTPart part) throws WTException {
-		List<WTDocument> docs = new ArrayList<WTDocument>();
-		QueryResult all = VersionControlHelper.service.allIterationsOf(part.getMaster());
-		while (all.hasMoreElements()) {
-			WTPart version = (WTPart) all.nextElement();
-			QueryResult qr = WTPartHelper.service.getDescribedByWTDocuments(version, false);
-			if (qr.size() > 0) {
-				while (qr.hasMoreElements()) {
-					WTPartDescribeLink link = (WTPartDescribeLink) qr.nextElement();
-					WTDocument doc = link.getDescribedBy();
-					if (!docs.contains(doc)) {
-						docs.add(doc);
-						deleteDocFromPart(doc, part);
-					}
-				}
+		Iterator itDocs = allDescribeDocs.persistableIterator();
+		while (itDocs.hasNext()) {
+			WTDocument describeDoc = (WTDocument) itDocs.next();
+			describeDoc.getNumber();
+			if (!IntegrationUtil.hasDescribePart(describeDoc) && IntegrationUtil.isOwn(describeDoc)) {
+				PersistenceHelper.manager.delete(describeDoc);
 			}
 		}
 	}
-
 }

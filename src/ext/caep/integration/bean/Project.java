@@ -50,8 +50,10 @@ public class Project {
 		this.ID = project.getNumber();
 		this.state = "";
 		IBAUtil iba = new IBAUtil(project);
-		this.describe = iba.getIBAValue(Constant.ATTR_DESCRIBE);
-		this.type = iba.getIBAValue(Constant.ATTR_CAEP_GX);
+		String describe = iba.getIBAValue(Constant.ATTR_DESCRIBE);
+		String type = iba.getIBAValue(Constant.ATTR_CAEP_GX);
+		this.describe = describe == null ? "" : describe;
+		this.type = type == null ? "" : type;
 	}
 
 	@XmlAttribute(name = "ID")
@@ -121,10 +123,14 @@ public class Project {
 		if (this.ID == null || this.ID.equals("")) {
 			create = true;
 			String number = NumberingUtil.getNumber(null, this);
+			WTPart part = IntegrationUtil.getPartFromNumber(number);
+			if (part != null) {
+				throw new Exception("不能重复创建构型为" + this.type + "的方案.");
+			}
 			this.ID = number;
 			partAttrs.put("partNumber", number);
 			partAttrs.put("partName", this.name);
-			partAttrs.put("parentContainerPath", "/wt.inf.container.OrgContainer=ptc/wt.pdmlink.PDMLinkProduct=" + IntegrationUtil.getProperty("product"));
+			partAttrs.put("parentContainerPath", IntegrationUtil.getContainerPath());
 			partAttrs.put("type", "component");
 			partAttrs.put("typedef", Constant.SOFTTYPE_PROJECT);
 			partAttrs.put("source", "make");
