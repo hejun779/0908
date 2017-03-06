@@ -56,7 +56,11 @@ public class Create {
 			File file = (File) root;
 			if (numberPrefixObj != null) {
 				if (numberPrefixObj instanceof Project) {
-					file.newDocument(parentNumber, currentProject, this.filePath, currentFolder);
+					if (IntegrationUtil.isAdmin()) {
+						file.newDocument(parentNumber, currentProject, this.filePath, currentFolder);
+					} else {
+						throw new Exception("不是方案管理员,不能创建方案附属文件.");
+					}
 				} else if (numberPrefixObj instanceof Task) {
 					file.newDocument(parentNumber, currentTask, this.filePath, currentFolder);
 				} else if (numberPrefixObj instanceof Para) {

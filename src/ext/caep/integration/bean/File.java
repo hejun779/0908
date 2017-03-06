@@ -136,8 +136,17 @@ public class File {
 
 	public void newDocument(String parentNumber, Object parent, String filePath, String folder) throws Exception {
 		if (this.ID == null || this.ID.equals("")) {
-			String number = NumberingUtil.getNumber(parent, this);
-			this.ID = number;
+
+			if (IntegrationUtil.isPara(parentNumber)) {
+				docAttrs.put("typedef", Constant.SOFTTYPE_IOFILE);
+				String number = NumberingUtil.getFileNumber(parent, this, true);
+				this.ID = number;
+			} else {
+				docAttrs.put("typedef", Constant.SOFTTYPE_FILE);
+				String number = NumberingUtil.getFileNumber(parent, this, false);
+				this.ID = number;
+			}
+
 			docAttrs.put("name", this.name);
 			docAttrs.put("number", this.ID);
 			if (this.getDescribe() != null && this.getDescribe().length() > 0) {
@@ -149,11 +158,7 @@ public class File {
 			}
 			docAttrs.put("saveIn", saveIn);
 			docAttrs.put("type", "Document");
-			if (IntegrationUtil.isPara(parentNumber)) {
-				docAttrs.put("typedef", Constant.SOFTTYPE_IOFILE);
-			} else {
-				docAttrs.put("typedef", Constant.SOFTTYPE_FILE);
-			}
+
 			docAttrs.put("parentContainerPath", IntegrationUtil.getContainerPath());
 			docAttrs.put("department", "DESIGN");
 			docAttrs.put("primarycontenttype", "ApplicationData");

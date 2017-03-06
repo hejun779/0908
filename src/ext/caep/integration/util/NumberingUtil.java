@@ -24,6 +24,7 @@ public class NumberingUtil {
 	public static String PROP_PARAM = "Para";
 	public static String PROP_FILE = "File";
 	public static String PROP_FILE_TYPE = "FileType";
+	public static String PROP_ISIOFILE = "isIOFile";
 
 	/**
 	 * 
@@ -134,6 +135,7 @@ public class NumberingUtil {
 		String value1 = props.get(PROP_PROJECT);
 		String value2 = props.get(PROP_TASK);
 		String value3 = props.get(PROP_FILE_TYPE);
+		String isIOFile = props.get(PROP_ISIOFILE);
 		if (value3 == null || value3.length() == 0) {
 			throw new Exception("Failed to get the file type property");
 		}
@@ -142,15 +144,30 @@ public class NumberingUtil {
 			long number = getSequenceNumber(value1);
 			value = value1 + "-" + String.format("%05d", (int) number);
 		} else if (value2 != null && value2.length() > 0) {
-			int index = value2.lastIndexOf("-");
-			if (index > -1) {
-				value2 = value2.substring(0, index);
-				value2 = value2 + "-" + value3;
-				long number = getSequenceNumber(value2);
-				value = value2 + "-" + String.format("%05d", (int) number);
+			// 输入输出文件
+			if (isIOFile != null && isIOFile.equals("true")) {
+				int index = value2.lastIndexOf("-");
+				if (index > -1) {
+					value2 = value2.substring(0, index);
+					value2 = value2 + "-" + value3;
+					long number = getSequenceNumber(value2);
+					value = value2 + "-" + String.format("%05d", (int) number);
+				} else {
+					throw new Exception("Failed to get the Separator from Task Id");
+				}
+				// 计算任务说明文件
 			} else {
-				throw new Exception("Failed to get the Separator from Task Id");
+				int index = value2.indexOf("-");
+				if (index > -1) {
+					value2 = value2.substring(0, index);
+					value2 = value2 + "-" + value3;
+					long number = getSequenceNumber(value2);
+					value = value2 + "-" + String.format("%05d", (int) number);
+				} else {
+					throw new Exception("Failed to get the Separator from Task Id");
+				}
 			}
+
 		} else {
 			throw new Exception("Failed to get the Project ID or Task ID");
 		}
@@ -219,6 +236,12 @@ public class NumberingUtil {
 	 */
 	public static String getNumber(Object parent, Object obj) throws Exception {
 		Map<String, String> props = getMapForNumber(parent, obj);
+		return getNumber(props);
+	}
+
+	public static String getFileNumber(Object parent, Object obj, boolean isIOFile) throws Exception {
+		Map<String, String> props = getMapForNumber(parent, obj);
+		props.put(PROP_ISIOFILE, String.valueOf(isIOFile));
 		return getNumber(props);
 	}
 
