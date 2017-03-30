@@ -174,7 +174,7 @@ public class Update {
 					IntegrationUtil.removePrimary(doc);
 				}
 				IntegrationUtil.checkin(doc);
-				file.setPath("");
+				// file.setPath("");
 				file.setState("");
 				trx.commit();
 				trx = null;

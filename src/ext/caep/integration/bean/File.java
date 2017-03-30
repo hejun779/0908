@@ -190,7 +190,7 @@ public class File {
 			if (parentNumber != null && !parentNumber.equals("")) {
 				createPartDocLink(parentNumber);
 			}
-			this.path = "";
+			// this.path = "";
 		}
 	}
 

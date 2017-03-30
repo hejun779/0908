@@ -1,18 +1,16 @@
 package ext.caep.integration.util;
 
-import java.io.File;
-import java.io.FileReader;
-import java.io.FileWriter;
-import java.io.IOException;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Properties;
 
 import ext.caep.integration.bean.Para;
 import ext.caep.integration.bean.Project;
 import ext.caep.integration.bean.Software;
 import ext.caep.integration.bean.Task;
-import wt.util.WTProperties;
+import wt.method.MethodContext;
+import wt.pom.WTConnection;
 
 public class NumberingUtil {
 
@@ -174,56 +172,53 @@ public class NumberingUtil {
 		return value;
 	}
 
-	private static File SEQUENCE_FILE;
-	private static Properties sequenceHolder;
+	private static long getSequenceNumber(String identifier) throws Exception {
+		long amount = get(identifier);
+		amount++;
+		save(identifier, amount);
+		return amount;
+	}
 
-	static {
-		String path = null;
+	private static void save(String indentifier, long amount) throws Exception {
+		// Transaction tr = new Transaction();
 		try {
-			WTProperties props = WTProperties.getServerProperties();
-			path = props.getProperty("wt.home");
-			if (path != null && path.length() > 0) {
-				path = path + File.separator + "sequence.properties";
+			// tr.start();
+			MethodContext mc = MethodContext.getContext();
+			WTConnection c = (WTConnection) mc.getConnection();
+			PreparedStatement s = null;
+			if (amount == 1) {
+				s = c.prepareStatement("insert into sequencetbl(seqindex,amount) values ('" + indentifier + "'," + amount + ")");
 			} else {
-				throw new Exception("Failed to get WT_HOME Environment ");
+				s = c.prepareStatement("update sequencetbl set amount=" + amount + " where seqindex='" + indentifier + "'");
 			}
-		} catch (Exception ex) {
-			path = "./sequence.properties";
-		}
+			s.executeUpdate();
+			s.close();
 
-		SEQUENCE_FILE = new File(path);
-		sequenceHolder = new Properties();
-		if (!SEQUENCE_FILE.exists()) {
-			try {
-				SEQUENCE_FILE.createNewFile();
-			} catch (IOException e) {
-				e.printStackTrace();
-			}
-		} else {
-			try {
-				sequenceHolder.load(new FileReader(SEQUENCE_FILE));
-			} catch (Exception e) {
-				e.printStackTrace();
-			}
+			// tr.commit();
+			// mc.freeConnection();
+			// tr = null;
+		} catch (Exception e) {
+			e.printStackTrace();
 		}
 	}
 
-	private synchronized static long getSequenceNumber(String identifier) throws Exception {
-		long sequence = 0;
-		String value = sequenceHolder.getProperty(identifier);
-		if (value == null || value.length() == 0) {
-			sequence++;
-		} else {
-			sequence = Long.parseLong(value);
-			sequence++;
+	private static long get(String indentifier) {
+		long amount = 0;
+		try {
+			MethodContext mc = MethodContext.getContext();
+			WTConnection c = (WTConnection) mc.getConnection();
+			PreparedStatement s = c.prepareStatement("select amount from sequencetbl where seqindex='" + indentifier + "'");
+			ResultSet rs = s.executeQuery();
+			if (rs.next()) {
+				amount = rs.getLong(1);
+			}
+			rs.close();
+			s.close();
+			// mc.freeConnection();
+		} catch (Exception e) {
+			e.printStackTrace();
 		}
-		sequenceHolder.put(identifier, Long.toString(sequence));
-		save();
-		return sequence;
-	}
-
-	private static void save() throws Exception {
-		sequenceHolder.store(new FileWriter(SEQUENCE_FILE), "");
+		return amount;
 	}
 
 	/**
@@ -234,18 +229,18 @@ public class NumberingUtil {
 	 * @return
 	 * @throws Exception
 	 */
-	public static String getNumber(Object parent, Object obj) throws Exception {
+	public synchronized static String getNumber(Object parent, Object obj) throws Exception {
 		Map<String, String> props = getMapForNumber(parent, obj);
 		return getNumber(props);
 	}
 
-	public static String getFileNumber(Object parent, Object obj, boolean isIOFile) throws Exception {
+	public synchronized static String getFileNumber(Object parent, Object obj, boolean isIOFile) throws Exception {
 		Map<String, String> props = getMapForNumber(parent, obj);
 		props.put(PROP_ISIOFILE, String.valueOf(isIOFile));
 		return getNumber(props);
 	}
 
-	public static Map<String, String> getMapForNumber(Object parent, Object obj) throws Exception {
+	private static Map<String, String> getMapForNumber(Object parent, Object obj) throws Exception {
 		Map<String, String> map = new HashMap<String, String>();
 		if (obj instanceof Project) {
 			Project project = (Project) obj;

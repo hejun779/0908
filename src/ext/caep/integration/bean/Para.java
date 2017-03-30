@@ -84,6 +84,7 @@ public class Para {
 		if (this.ID == null || this.ID.equals("")) {
 			this.create = true;
 			String number = NumberingUtil.getNumber(null, this);
+			System.out.println("New Para number is:" + number);
 			this.ID = number;
 			partAttrs.put("partNumber", number);
 			partAttrs.put("partName", this.name);
