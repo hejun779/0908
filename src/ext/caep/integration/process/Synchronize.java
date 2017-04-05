@@ -47,7 +47,17 @@ public class Synchronize extends DataOperation {
 		List<WTPart> projects = IntegrationUtil.getAllProject();
 		List<Project> projectBeans = new ArrayList<Project>();
 		for (WTPart project : projects) {
-			projectBeans.add(syncProject(project));
+			Project oldProject = null;
+			// 获取客户端提交的相同ID的方案数据
+			if (old.getProjects() != null) {
+				for (Project o : old.getProjects()) {
+					if (project.getNumber().equals(o.getID())) {
+						oldProject = o;
+						break;
+					}
+				}
+			}
+			projectBeans.add(syncProject(project, oldProject));
 		}
 		if (!projectBeans.isEmpty()) {
 			old.setProjects(projectBeans);
@@ -61,7 +71,7 @@ public class Synchronize extends DataOperation {
 	 * @throws WTException
 	 */
 
-	private Project syncProject(WTPart project) throws WTException {
+	private Project syncProject(WTPart project, Project old) throws WTException {
 		Project projectBean = new Project(project);
 		List<WTPart> tasks = IntegrationUtil.getChildren(project);
 		List<Task> taskBeans = new ArrayList<Task>();
@@ -69,7 +79,16 @@ public class Synchronize extends DataOperation {
 			tasks = IntegrationUtil.filter(tasks);
 		}
 		for (WTPart task : tasks) {
-			taskBeans.add(syncTask(task));
+			Task oldTask = null;
+			if (old != null && old.getTasks() != null) {
+				for (Task o : old.getTasks()) {
+					if (task.getNumber().equals(o.getID())) {
+						oldTask = o;
+						break;
+					}
+				}
+			}
+			taskBeans.add(syncTask(task, oldTask));
 		}
 		if (!taskBeans.isEmpty()) {
 			projectBean.setTasks(taskBeans);
@@ -78,6 +97,9 @@ public class Synchronize extends DataOperation {
 		if (files != null && !files.isEmpty()) {
 			Files file = new Files();
 			file.setFiles(files);
+			if (old != null && old.getFiles() != null) {
+				copyFilePath(old.getFiles(), file);
+			}
 			projectBean.setFiles(file);
 		}
 		return projectBean;
@@ -86,9 +108,13 @@ public class Synchronize extends DataOperation {
 	private void syncProject(Project old) throws Exception {
 		WTPart project = IntegrationUtil.getPartFromNumber(old.getID());
 		if (project != null) {
-			Project newProject = syncProject(project);
+			Project newProject = syncProject(project, old);
 			old.setFiles(newProject.getFiles());
 			old.setTasks(newProject.getTasks());
+			old.setState("");
+			old.setName(newProject.getName());
+			old.setDescribe(newProject.getDescribe());
+			old.setType(newProject.getType());
 		} else {
 			throw new Exception("ID为" + old.getID() + "的方案不存在");
 		}
@@ -104,30 +130,41 @@ public class Synchronize extends DataOperation {
 	private void syncTask(Task old) throws Exception {
 		WTPart task = IntegrationUtil.getPartFromNumber(old.getID());
 		if (task != null) {
-			Task updated = syncTask(task);
+			Task updated = syncTask(task, old);
 			old.setName(task.getName());
 			old.setDescribe(updated.getDescribe());
 			old.setFiles(updated.getFiles());
 			old.setSoftwares(updated.getSoftwares());
-			old.setState(updated.getState());
+			old.setState("");
 		} else {
 			throw new Exception("ID为" + old.getID() + "的计算任务不存在");
 		}
 	}
 
-	private Task syncTask(WTPart task) throws WTException {
+	private Task syncTask(WTPart task, Task old) throws WTException {
 		Task taskBean = new Task(task);
 		List<File> files = syncFiles(task);
 		if (files != null && !files.isEmpty()) {
 			Files file = new Files();
 			file.setFiles(files);
+			if (old != null && old.getFiles() != null) {
+				copyFilePath(old.getFiles(), file);
+			}
 			taskBean.setFiles(file);
 		}
 		List<WTPart> softwareParts = IntegrationUtil.getChildren(task);
 		if (softwareParts != null && !softwareParts.isEmpty()) {
 			List<Software> softwares = new ArrayList<Software>();
 			for (WTPart software : softwareParts) {
-				softwares.add(syncSoftware(software));
+				Software oldSoftware = null;
+				if (old != null && old.getSoftwares() != null) {
+					for (Software o : old.getSoftwares()) {
+						if (software.getNumber().equals(o.getID())) {
+							oldSoftware = o;
+						}
+					}
+				}
+				softwares.add(syncSoftware(software, oldSoftware));
 			}
 			taskBean.setSoftwares(softwares);
 		} else {
@@ -143,13 +180,22 @@ public class Synchronize extends DataOperation {
 	 * @return
 	 * @throws WTException
 	 */
-	private Software syncSoftware(WTPart software) throws WTException {
+	private Software syncSoftware(WTPart software, Software old) throws WTException {
 		Software softwareBean = new Software(software);
 		List<WTPart> paraParts = IntegrationUtil.getChildren(software);
 		if (paraParts != null && !paraParts.isEmpty()) {
 			List<Para> paras = new ArrayList<Para>();
 			for (WTPart paraPart : paraParts) {
-				paras.add(syncPara(paraPart));
+				Para oldPara = null;
+				if (old != null && old.getParas() != null) {
+					for (Para o : old.getParas()) {
+						if (paraPart.getNumber().equals(o.getID())) {
+							oldPara = o;
+							break;
+						}
+					}
+				}
+				paras.add(syncPara(paraPart, oldPara));
 			}
 			softwareBean.setParas(paras);
 		}
@@ -160,10 +206,10 @@ public class Synchronize extends DataOperation {
 	private void syncSoftware(Software old) throws Exception {
 		WTPart software = IntegrationUtil.getPartFromNumber(old.getID());
 		if (software != null) {
-			Software updated = syncSoftware(software);
+			Software updated = syncSoftware(software, old);
 			old.setName(updated.getName());
 			old.setParas(updated.getParas());
-			old.setState(updated.getState());
+			old.setState("");
 		} else {
 			throw new Exception("ID为" + old.getID() + "的专有软件不存在");
 		}
@@ -176,19 +222,22 @@ public class Synchronize extends DataOperation {
 	 * @return
 	 * @throws WTException
 	 */
-	private Para syncPara(WTPart para) throws WTException {
+	private Para syncPara(WTPart para, Para old) throws WTException {
 		Para paraBean = new Para(para);
 		paraBean.setFiles(syncFiles(para));
+		if (old != null && old.getFiles() != null) {
+			copyFilePath(old.getFiles(), paraBean.getFiles());
+		}
 		return paraBean;
 	}
 
 	private void syncPara(Para old) throws Exception {
 		WTPart para = IntegrationUtil.getPartFromNumber(old.getID());
 		if (para != null) {
-			Para updated = syncPara(para);
+			Para updated = syncPara(para, old);
 			old.setFiles(updated.getFiles());
 			old.setName(updated.getName());
-			old.setState(updated.getState());
+			old.setState("");
 		} else {
 			throw new Exception("ID为" + old.getID() + "的计算参数不存在");
 		}
@@ -236,5 +285,39 @@ public class Synchronize extends DataOperation {
 			result.add(file);
 		}
 		return result;
+	}
+
+	/**
+	 * 拷贝文档中的path属性
+	 */
+	private void copyFilePath(Files from, Files to) {
+		List<File> fromFiles = from.getFiles();
+		List<File> toFiles = to.getFiles();
+		if (fromFiles != null && to != null) {
+			for (File toFile : toFiles) {
+				for (File fromFile : fromFiles) {
+					if (fromFile.getID().equals(toFile.getID())) {
+						toFile.setPath(fromFile.getPath());
+						break;
+					}
+				}
+			}
+		}
+	}
+
+	/**
+	 * 拷贝文档中的path属性
+	 */
+	private void copyFilePath(List<File> from, List<File> to) {
+		if (from != null && to != null) {
+			for (File toFile : to) {
+				for (File fromFile : from) {
+					if (fromFile.getID().equals(toFile.getID())) {
+						toFile.setPath(fromFile.getPath());
+						break;
+					}
+				}
+			}
+		}
 	}
 }
