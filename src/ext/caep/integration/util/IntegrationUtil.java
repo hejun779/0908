@@ -864,6 +864,28 @@ public class IntegrationUtil implements RemoteAccess {
 		return path;
 	}
 
+	/**
+	 * 同步文档附件
+	 * 
+	 * @param doc
+	 * @param parameters
+	 * @param filePath
+	 * @param hierarchyIndex
+	 * @return
+	 * @throws Exception
+	 */
+	public static String syncFile(WTDocument doc, Map<String, Object> parameters, String filePath, Object hierarchyIndex) throws Exception {
+		String path = "";
+		QueryResult primary = ContentHelper.service.getContentsByRole(doc, ContentRoleType.PRIMARY);
+		if (primary.hasMoreElements()) {
+			String pathPrefix = getPathPrefix(parameters, hierarchyIndex);
+			ApplicationData data = (ApplicationData) primary.nextElement();
+			String fullName = data.getFileName();
+			path = pathPrefix + File.separator + fullName;
+		}
+		return path;
+	}
+
 	public static Class findRootClass(File file) throws Exception {
 		Class cls = null;
 		BufferedReader reader = new BufferedReader(new FileReader(file));

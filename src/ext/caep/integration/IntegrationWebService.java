@@ -135,7 +135,7 @@ public class IntegrationWebService implements RemoteAccess {
 		}
 		// 同步:如果state表示同步,则同步包括此节点和所有子节点,忽略所有子节点的state状态
 		else if (Constant.STATE_SYNCHRONIZE.equals(state)) {
-			new Synchronize().process(root);
+			new Synchronize(parameters).process(root);
 		}
 		// 下载:如果state表示下载,则下载此节点和所有子节点的文档主内容,忽略所有子节点的stae状态
 		else if (Constant.STATE_DOWNLOAD.equals(state)) {

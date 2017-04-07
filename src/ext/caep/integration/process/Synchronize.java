@@ -1,7 +1,9 @@
 package ext.caep.integration.process;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import ext.caep.integration.bean.File;
 import ext.caep.integration.bean.Files;
@@ -14,9 +16,15 @@ import ext.caep.integration.util.IntegrationUtil;
 import wt.doc.WTDocument;
 import wt.part.WTPart;
 import wt.util.WTException;
-import wt.util.WTPropertyVetoException;
 
 public class Synchronize extends DataOperation {
+	private String filePath = "";
+	private Map<String, Object> parameters = new HashMap<String, Object>();
+
+	public Synchronize(Map<String, Object> parameters) {
+		this.parameters = parameters;
+
+	}
 
 	public void process(Object root) throws Exception {
 		if (root instanceof Global) {
@@ -39,25 +47,14 @@ public class Synchronize extends DataOperation {
 	 * 
 	 * @param old
 	 * @return
-	 * @throws WTException
-	 * @throws WTPropertyVetoException
+	 * @throws Exception
 	 */
-	private void syncGlobal(Global old) throws WTPropertyVetoException, WTException {
+	private void syncGlobal(Global old) throws Exception {
 		old.setState("");
 		List<WTPart> projects = IntegrationUtil.getAllProject();
 		List<Project> projectBeans = new ArrayList<Project>();
 		for (WTPart project : projects) {
-			Project oldProject = null;
-			// 获取客户端提交的相同ID的方案数据
-			if (old.getProjects() != null) {
-				for (Project o : old.getProjects()) {
-					if (project.getNumber().equals(o.getID())) {
-						oldProject = o;
-						break;
-					}
-				}
-			}
-			projectBeans.add(syncProject(project, oldProject));
+			projectBeans.add(syncProject(project));
 		}
 		if (!projectBeans.isEmpty()) {
 			old.setProjects(projectBeans);
@@ -71,35 +68,24 @@ public class Synchronize extends DataOperation {
 	 * @throws WTException
 	 */
 
-	private Project syncProject(WTPart project, Project old) throws WTException {
+	private Project syncProject(WTPart project) throws Exception {
 		Project projectBean = new Project(project);
+		this.parameters.put("currentProject", projectBean);
 		List<WTPart> tasks = IntegrationUtil.getChildren(project);
 		List<Task> taskBeans = new ArrayList<Task>();
 		if (!IntegrationUtil.isAdmin()) {
 			tasks = IntegrationUtil.filter(tasks);
 		}
 		for (WTPart task : tasks) {
-			Task oldTask = null;
-			if (old != null && old.getTasks() != null) {
-				for (Task o : old.getTasks()) {
-					if (task.getNumber().equals(o.getID())) {
-						oldTask = o;
-						break;
-					}
-				}
-			}
-			taskBeans.add(syncTask(task, oldTask));
+			taskBeans.add(syncTask(task));
 		}
 		if (!taskBeans.isEmpty()) {
 			projectBean.setTasks(taskBeans);
 		}
-		List<File> files = syncFiles(project);
+		List<File> files = syncFiles(project, projectBean);
 		if (files != null && !files.isEmpty()) {
 			Files file = new Files();
 			file.setFiles(files);
-			if (old != null && old.getFiles() != null) {
-				copyFilePath(old.getFiles(), file);
-			}
 			projectBean.setFiles(file);
 		}
 		return projectBean;
@@ -108,7 +94,7 @@ public class Synchronize extends DataOperation {
 	private void syncProject(Project old) throws Exception {
 		WTPart project = IntegrationUtil.getPartFromNumber(old.getID());
 		if (project != null) {
-			Project newProject = syncProject(project, old);
+			Project newProject = syncProject(project);
 			old.setFiles(newProject.getFiles());
 			old.setTasks(newProject.getTasks());
 			old.setState("");
@@ -130,7 +116,7 @@ public class Synchronize extends DataOperation {
 	private void syncTask(Task old) throws Exception {
 		WTPart task = IntegrationUtil.getPartFromNumber(old.getID());
 		if (task != null) {
-			Task updated = syncTask(task, old);
+			Task updated = syncTask(task);
 			old.setName(task.getName());
 			old.setDescribe(updated.getDescribe());
 			old.setFiles(updated.getFiles());
@@ -141,30 +127,20 @@ public class Synchronize extends DataOperation {
 		}
 	}
 
-	private Task syncTask(WTPart task, Task old) throws WTException {
+	private Task syncTask(WTPart task) throws Exception {
 		Task taskBean = new Task(task);
-		List<File> files = syncFiles(task);
+		this.parameters.put("currentTask", taskBean);
+		List<File> files = syncFiles(task, new Task(task));
 		if (files != null && !files.isEmpty()) {
 			Files file = new Files();
 			file.setFiles(files);
-			if (old != null && old.getFiles() != null) {
-				copyFilePath(old.getFiles(), file);
-			}
 			taskBean.setFiles(file);
 		}
 		List<WTPart> softwareParts = IntegrationUtil.getChildren(task);
 		if (softwareParts != null && !softwareParts.isEmpty()) {
 			List<Software> softwares = new ArrayList<Software>();
 			for (WTPart software : softwareParts) {
-				Software oldSoftware = null;
-				if (old != null && old.getSoftwares() != null) {
-					for (Software o : old.getSoftwares()) {
-						if (software.getNumber().equals(o.getID())) {
-							oldSoftware = o;
-						}
-					}
-				}
-				softwares.add(syncSoftware(software, oldSoftware));
+				softwares.add(syncSoftware(software));
 			}
 			taskBean.setSoftwares(softwares);
 		} else {
@@ -178,24 +154,16 @@ public class Synchronize extends DataOperation {
 	 * 
 	 * @param software
 	 * @return
-	 * @throws WTException
+	 * @throws Exception
 	 */
-	private Software syncSoftware(WTPart software, Software old) throws WTException {
+	private Software syncSoftware(WTPart software) throws Exception {
 		Software softwareBean = new Software(software);
+		this.parameters.put("currentSoftware", softwareBean);
 		List<WTPart> paraParts = IntegrationUtil.getChildren(software);
 		if (paraParts != null && !paraParts.isEmpty()) {
 			List<Para> paras = new ArrayList<Para>();
 			for (WTPart paraPart : paraParts) {
-				Para oldPara = null;
-				if (old != null && old.getParas() != null) {
-					for (Para o : old.getParas()) {
-						if (paraPart.getNumber().equals(o.getID())) {
-							oldPara = o;
-							break;
-						}
-					}
-				}
-				paras.add(syncPara(paraPart, oldPara));
+				paras.add(syncPara(paraPart));
 			}
 			softwareBean.setParas(paras);
 		}
@@ -206,7 +174,7 @@ public class Synchronize extends DataOperation {
 	private void syncSoftware(Software old) throws Exception {
 		WTPart software = IntegrationUtil.getPartFromNumber(old.getID());
 		if (software != null) {
-			Software updated = syncSoftware(software, old);
+			Software updated = syncSoftware(software);
 			old.setName(updated.getName());
 			old.setParas(updated.getParas());
 			old.setState("");
@@ -220,21 +188,19 @@ public class Synchronize extends DataOperation {
 	 * 
 	 * @param para
 	 * @return
-	 * @throws WTException
+	 * @throws Exception
 	 */
-	private Para syncPara(WTPart para, Para old) throws WTException {
+	private Para syncPara(WTPart para) throws Exception {
 		Para paraBean = new Para(para);
-		paraBean.setFiles(syncFiles(para));
-		if (old != null && old.getFiles() != null) {
-			copyFilePath(old.getFiles(), paraBean.getFiles());
-		}
+		this.parameters.put("currentPara", paraBean);
+		paraBean.setFiles(syncFiles(para, paraBean));
 		return paraBean;
 	}
 
 	private void syncPara(Para old) throws Exception {
 		WTPart para = IntegrationUtil.getPartFromNumber(old.getID());
 		if (para != null) {
-			Para updated = syncPara(para, old);
+			Para updated = syncPara(para);
 			old.setFiles(updated.getFiles());
 			old.setName(updated.getName());
 			old.setState("");
@@ -248,9 +214,12 @@ public class Synchronize extends DataOperation {
 	 * 
 	 * @param file
 	 * @return
+	 * @throws Exception
 	 */
-	private File syncFile(WTDocument file) {
+	private File syncFile(WTDocument file) throws Exception {
 		File fileBean = new File(file);
+		String path = IntegrationUtil.syncFile(file, parameters, this.filePath, fileBean);
+		fileBean.setPath(path);
 		return fileBean;
 	}
 
@@ -264,6 +233,7 @@ public class Synchronize extends DataOperation {
 			old.setType(updated.getType());
 			old.setDescribe(updated.getDescribe());
 			old.setState("");
+			old.setPath(updated.getPath());
 		} else {
 			throw new Exception("ID为" + old.getID() + "的文件不存在");
 		}
@@ -277,47 +247,14 @@ public class Synchronize extends DataOperation {
 	 * @return
 	 * @throws WTException
 	 */
-	private static List<File> syncFiles(WTPart part) throws WTException {
+	private List<File> syncFiles(WTPart part, Object hierarchyIndex) throws Exception {
 		List<File> result = new ArrayList<File>();
 		List<WTDocument> docs = IntegrationUtil.getDescribeDoc(part);
 		for (WTDocument doc : docs) {
 			File file = new File(doc);
+			file.setPath(IntegrationUtil.syncFile(doc, this.parameters, this.filePath, hierarchyIndex));
 			result.add(file);
 		}
 		return result;
-	}
-
-	/**
-	 * 拷贝文档中的path属性
-	 */
-	private void copyFilePath(Files from, Files to) {
-		List<File> fromFiles = from.getFiles();
-		List<File> toFiles = to.getFiles();
-		if (fromFiles != null && to != null) {
-			for (File toFile : toFiles) {
-				for (File fromFile : fromFiles) {
-					if (fromFile.getID().equals(toFile.getID())) {
-						toFile.setPath(fromFile.getPath());
-						break;
-					}
-				}
-			}
-		}
-	}
-
-	/**
-	 * 拷贝文档中的path属性
-	 */
-	private void copyFilePath(List<File> from, List<File> to) {
-		if (from != null && to != null) {
-			for (File toFile : to) {
-				for (File fromFile : from) {
-					if (fromFile.getID().equals(toFile.getID())) {
-						toFile.setPath(fromFile.getPath());
-						break;
-					}
-				}
-			}
-		}
 	}
 }
