@@ -171,7 +171,7 @@ public class IntegrationWebService implements RemoteAccess {
 			parameters.put("currentFolder", Constant.FOLDER_PROJECT);
 
 			Files files = project.getFiles();
-			if (files != null && files.getClass() != null && !files.getFiles().isEmpty()) {
+			if (files != null && files.getFiles() != null && !files.getFiles().isEmpty()) {
 
 				for (ext.caep.integration.bean.File file : files.getFiles()) {
 					processDelegate(file, file.getState(), file.getID());
