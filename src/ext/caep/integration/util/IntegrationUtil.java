@@ -1042,7 +1042,7 @@ public class IntegrationUtil implements RemoteAccess {
 		if (paraPart != null) {
 			WTPart softwarePart = getParent(paraPart);
 			if (softwarePart != null) {
-				pathPrefix = getPathPrefix(new Software(softwarePart)) + "\\" + para.getID();
+				pathPrefix = getPathPrefix(new Software(softwarePart)) + "\\" + para.getName();
 			} else {
 				throw new Exception("找不到计算参数" + para.getID() + "所属的专有软件");
 			}
@@ -1126,7 +1126,9 @@ public class IntegrationUtil implements RemoteAccess {
 				Project project = (Project) parameters.get("currentProject");
 				Task task = (Task) parameters.get("currentTask");
 				Software software = (Software) parameters.get("currentSoftware");
-				pathPrefix = project.getID() + "\\" + task.getID() + "\\" + software.getName() + "\\" + para.getID();
+				// pathPrefix = project.getID() + "\\" + task.getID() + "\\" +
+				// software.getName() + "\\" + para.getID();
+				pathPrefix = project.getID() + "\\" + task.getID() + "\\" + software.getName() + "\\" + para.getName();
 			} else {
 				pathPrefix = getPathPrefix(para);
 			}
