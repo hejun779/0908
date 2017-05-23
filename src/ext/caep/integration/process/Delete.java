@@ -101,7 +101,7 @@ public class Delete {
 				throw new Exception("ID为" + project.getNumber() + "的方案下没有你创建的计算任务可供删除");
 			}
 		} else if (isAdmin && hasTask) {
-			throw new Exception("方案管理员不能删除有计算任务的方案(ID:" + project.getNumber());
+			throw new Exception("方案管理员不能删除有计算任务的方案(ID:" + project.getNumber() + ")");
 		} else if (!hasTask && isMember) {
 			throw new Exception("ID为" + project.getNumber() + "的方案下没有你创建的计算任务可供删除");
 		}
